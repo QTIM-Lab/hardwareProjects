@@ -30,23 +30,27 @@ void setup()
   Wire.begin();  // use Wire.begin(40, 39);  // for S3 chip
   Wire.setClock(400000); //Increase I2C clock speed to 400kHz
 
-  Serial.begin(9600);
+  // Serial.begin(9600);
 
-
+	Serial.println("about to initFileSystem");
 	initFileSystem();
-  pinMode(LED_BUILTIN, OUTPUT);
-  digitalWrite(LED_BUILTIN, LOW);
+	Serial.println("done initFileSystem");
+  // pinMode(LED_BUILTIN, OUTPUT);
+  // digitalWrite(LED_BUILTIN, LOW);
   // from freenove Sketch_04.1_SDMMC_Test
 	SD_MMC.setPins(SD_MMC_CLK, SD_MMC_CMD, SD_MMC_D0);
   if (!SD_MMC.begin("/sdcard", true, true, SDMMC_FREQ_DEFAULT, 5)) {
-      Serial.println("Card Mount Failed");
-      return;
-    }
+    Serial.println("Card Mount Failed");
+    return;
+  }
+
+  Serial.println("about to initFileSystem");  
   uint8_t cardType = SD_MMC.cardType();
   if(cardType == CARD_NONE){
-        Serial.println("No SD_MMC card attached");
-        return;
-    }
+      Serial.println("No SD_MMC card attached");
+      return;
+  }
+  Serial.println("Found SD_MMC card");
 
   Serial.print("SD_MMC Card Type: ");
   if(cardType == CARD_MMC){
@@ -84,7 +88,7 @@ void setup()
   // Serial.printf("Used space: %lluMB\r\n", SD_MMC.usedBytes() / (1024 * 1024));    
 
   initCamera();
-  setInterval(10000);
+  setInterval(5000);
   setMaxCount(3);
   startLapse();
 }

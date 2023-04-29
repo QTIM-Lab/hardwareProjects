@@ -7,6 +7,10 @@ https://randomnerdtutorials.com/esp32-cam-take-photo-save-microsd-card/
 https://www.theelectronics.co.in/2022/04/how-to-use-internal-rtc-of-esp32.html
 
 
+## Freenove github tutorial 
+https://github.com/Freenove/Freenove_ESP32_S3_WROOM_Board
+
+
 ## saving images with NTP server timestamp
 https://randomnerdtutorials.com/esp32-cam-photo-microsd-card-timestamp/
 
