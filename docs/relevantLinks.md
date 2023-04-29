@@ -25,3 +25,6 @@ https://github.com/ibrahimqazi/TFmini-S-interfacing-with-ESP32
 ## face detection
 https://cms.tinyml.org/wp-content/uploads/talks2022/A-lightweight-face-detection_Justin-Kao.pdf
 
+## ESP32 cards
+https://makeradvisor.com/esp32-development-boards-review-comparison/
+
