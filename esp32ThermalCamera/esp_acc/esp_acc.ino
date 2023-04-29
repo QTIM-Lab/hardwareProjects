@@ -41,7 +41,7 @@ paramsMLX90640 mlx90640;
 void setup()
 {
   Serial.println('started setup');
-  Wire.begin();
+  Wire.begin();  // use Wire.begin(40, 39);  // for S3 chip
   Wire.setClock(400000); //Increase I2C clock speed to 400kHz
 
   Serial.begin(9600);
