@@ -28,3 +28,5 @@ https://cms.tinyml.org/wp-content/uploads/talks2022/A-lightweight-face-detection
 ## ESP32 cards
 https://makeradvisor.com/esp32-development-boards-review-comparison/
 
+## example use with thermal and regular camera
+https://github.com/danjulio/firecam
