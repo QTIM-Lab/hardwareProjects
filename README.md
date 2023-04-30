@@ -27,6 +27,7 @@ To Dos
 - [ ] jetson as server
 - [ ] design backend system with db + time stamps
 - [ ] dashboard
+- [ ] print case
 
 
 
