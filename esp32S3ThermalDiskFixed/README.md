@@ -1,5 +1,16 @@
-# ESP32 connected to MLX90640 Thermal Camera 
+# ESP32S3 connected to MLX90640 Thermal Camera 
 
+<br>
+
+## Secret Sauce:
+
+Thermal camera uses pins 47 and 21. MMC communication to SD card uses pins 38, 39, 40.
+
+<br><br><br>
+
+
+
+# HISTORIC
 
 ## This is a failed experiment to try to use the SD_MMC (SD card read/write using MMC) with the MLX90640 thermal camera. 
 

@@ -26,8 +26,8 @@
   Open the serial monitor at 9600 baud to see the output
 */
 
-// Thermal camera stuff
 #include <Wire.h>
+
 #include "MLX90640_API.h"
 #include "MLX90640_I2C_Driver.h"
 
@@ -38,70 +38,11 @@ const byte MLX90640_address = 0x33; //Default 7-bit unshifted address of the MLX
 static float mlx90640To[768];
 paramsMLX90640 mlx90640;
 
-// SD card via MMC
-#include "sd_read_write.h"
-#include "SD_MMC.h"
-
-#define SD_MMC_CMD 38 //Please do not modify it.
-#define SD_MMC_CLK 39 //Please do not modify it. 
-#define SD_MMC_D0  40 //Please do not modify it.
-
-void setupAndTestMMC() {
-    Serial.begin(115200);
-    SD_MMC.setPins(SD_MMC_CLK, SD_MMC_CMD, SD_MMC_D0);
-    if (!SD_MMC.begin("/sdcard", true, true, SDMMC_FREQ_DEFAULT, 5)) {
-      Serial.println("Card Mount Failed");
-      return;
-    }
-    uint8_t cardType = SD_MMC.cardType();
-    if(cardType == CARD_NONE){
-        Serial.println("No SD_MMC card attached");
-        return;
-    }
-
-    Serial.print("SD_MMC Card Type: ");
-    if(cardType == CARD_MMC){
-        Serial.println("MMC");
-    } else if(cardType == CARD_SD){
-        Serial.println("SDSC");
-    } else if(cardType == CARD_SDHC){
-        Serial.println("SDHC");
-    } else {
-        Serial.println("UNKNOWN");
-    }
-
-    uint64_t cardSize = SD_MMC.cardSize() / (1024 * 1024);
-    Serial.printf("SD_MMC Card Size: %lluMB\n", cardSize);
-
-    listDir(SD_MMC, "/", 0);
-
-    createDir(SD_MMC, "/mydir");
-    listDir(SD_MMC, "/", 0);
-
-    removeDir(SD_MMC, "/mydir");
-    listDir(SD_MMC, "/", 2);
-
-    writeFile(SD_MMC, "/hello.txt", "Hello ");
-    appendFile(SD_MMC, "/hello.txt", "World!\n");
-    readFile(SD_MMC, "/hello.txt");
-
-    deleteFile(SD_MMC, "/foo.txt");
-    renameFile(SD_MMC, "/hello.txt", "/foo.txt");
-    readFile(SD_MMC, "/foo.txt");
-
-    testFileIO(SD_MMC, "/test.txt");
-    
-    Serial.printf("Total space: %lluMB\r\n", SD_MMC.totalBytes() / (1024 * 1024));
-    Serial.printf("Used space: %lluMB\r\n", SD_MMC.usedBytes() / (1024 * 1024));
-}
-
-
-
 void setup()
 {
   Serial.println('started setup');
   //Wire.begin();
-  Wire.begin(40, 39); // Set I2C pins for ESP32-S3
+  Wire.begin(47, 21); // Set I2C pins for ESP32-S3
   // Initialize MLX90640 module
  
   Wire.setClock(400000); //Increase I2C clock speed to 400kHz
@@ -129,7 +70,6 @@ void setup()
     Serial.println("Parameter extraction failed");
 
   //Once params are extracted, we can release eeMLX90640 array
-  setupAndTestMMC();
 }
 
 void loop()
