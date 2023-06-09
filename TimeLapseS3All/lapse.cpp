@@ -51,8 +51,6 @@ void setThermalCamData(const byte& inMLX90640_address, float* inMlx90640To, cons
 
 bool takeAndStoreThermalPic() {
 
-    Serial.println("Enter takeAndStoreThermalPic");
-
     for (byte x = 0 ; x < 2 ; x++) //Read both subpages
     {
         uint16_t mlx90640Frame[834];
@@ -72,7 +70,6 @@ bool takeAndStoreThermalPic() {
         MLX90640_CalculateTo(mlx90640Frame, &mlx90640a, emissivity, tr, mlx90640To);
     }
 
-    Serial.println("begin image");
     sprintf(filename, "/thermal_%03d.txt", fileIndexTherm);
     // writeFile(SD_MMC, filename, "");
     // appendFile(SD_MMC, filename, "World!\n");
@@ -97,9 +94,9 @@ bool takeAndStoreThermalPic() {
         rowStr[0] = '\0'; // empty the string by making the first char a NULL
     }
 
-    Serial.println("end image");
     fileIndexTherm = fileIndexTherm + 1.0;
-    Serial.println("leaving takeAndStoreThermalPic");
+    Serial.print("thermal image saved: ");
+    Serial.println(filename);
 
     return true;
 }
@@ -161,10 +158,7 @@ bool processLapse(unsigned long dt)
         fileIndex++;
         esp_camera_fb_return(fb);
 
-        Serial.println("Pic taken - now thermal");
-
         takeAndStoreThermalPic();
-        Serial.println("Thermal taken");
     }
 
     return true;
