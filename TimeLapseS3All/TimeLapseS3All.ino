@@ -1,9 +1,10 @@
 #define DEBUG_ESP_PORT Serial  
-#define CORE_DEBUG_LEVEL 0 // can be 0-5: None, Err, Warn, Info, Debug, Verbose
+#define CORE_DEBUG_LEVEL 2 // for httpclient, can be 0-5: None, Err, Warn, Info, Debug, Verbose
 
 #include "file.h"
 #include "camera.h"
 #include "lapse.h"
+#include "sensor_status.h"
 
 #include <Wire.h>
 #include "MLX90640_API.h"
@@ -19,6 +20,9 @@ paramsMLX90640 mlx90640;
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
+
+#include <Base64.h> // for sending images - first convert to base 64
+
 
 String ssid = "read from config";   // to do, I don't trust String due to memory fragmentation, but okay for now?
 String password = "read from config";  
@@ -43,7 +47,7 @@ String password = "read from config";
 #define SD_MMC_D0  40 // Pin for SD card access
 
 #define PYE_IR_PIN 42 // Pin for motion sensor signal
-const unsigned long MOTION_INTERVAL=1000;
+const unsigned long MOTION_INTERVAL=5000;
 const char* motionFileLog = "/Motion.log";
 
 void setupAndTestMMC() {
@@ -229,27 +233,23 @@ void setup()
 {
   Serial.begin(115200);
 
-  Serial.println("entering setup");
+  Serial.println("setup begin");
 
 	initFileSystem(); // needed? - redundant with setupAndTestMMC call to SD_MMC.begin() ?
-  Serial.println("InitFileSystem, done");
+  Serial.println(" InitFileSystem, done");
 
   pinMode(LED_BUILTIN, OUTPUT);    // turn off led - needed?
   digitalWrite(LED_BUILTIN, LOW);
-  Serial.println("LED off, done");
-
+  Serial.println(" LED off, done");
   setupAndTestMMC();
-  Serial.println("MMC test, done");
+  Serial.println(" MMC test, done");
   initCamera();
-  Serial.println("camera setup");
+  Serial.println(" Camera setup, done");
   setupMLX90460();
-  Serial.println("thermal camera setup");
-
-  Serial.println("about to setup wifi");
-  setupWiFi();
-  Serial.println("done - setup wifi");
+  Serial.println(" Thermal camera setup, done");
+  // setupWiFi();
+  Serial.println(" Wifi setup, done");
   get_network_info();
-  Serial.println("setupWiFi, done");
 
   setInterval(60000);
   setMaxCount(1000);
@@ -257,17 +257,22 @@ void setup()
 
   pinMode(PYE_IR_PIN, INPUT);
 
+  Serial.println("setup, done");
   startLapse();
 }
 
 void loop()
 {
-	unsigned long t = millis();
-	static unsigned long ot = 0;
-	unsigned long dt = t - ot;
-	ot = t;
-	processLapse(dt);
+  unsigned long t = millis();
+  static unsigned long ot = 0;
+  unsigned long dt = t - ot;
+  ot = t;
+  SensorStatus lapseStatus = processLapse(dt);
 
+  if (lapseStatus.tookThermalImage) {
+    Serial.println(lapseStatus.debugPrint());
+    // sendHttpThermalData(t, lapseStatus.thermalFilename);
+  } 
 
   static int lastMotionState = 0;
   static unsigned long lastMotionCheckTime = 0;
@@ -295,63 +300,14 @@ void loop()
       Serial.println(timeMsg);
       lastMotionState = state;
 
-      sendHttpMotionData(t, state);
+      // sendHttpMotionData(t, state);
     }
   }
+
+
+
 }
 
-
-void sendHttpMotionData(unsigned long time_read, bool motion) {
-  if (WiFi.status() == WL_CONNECTED) { 
-
-      HTTPClient http;
-      StaticJsonDocument<200> obj;  // Create a static JSON document with 200 bytes
-
-      // Add some key/value pairs
-      obj["sensor_id"] = SENSOR_ID;
-      obj["motion"] = motion ? "true" : "false";
-      obj["time_read"] = time_read;
-
-      // Generate the string to send
-      String httpRequestData;
-      serializeJson(obj, httpRequestData);
-
-      const char* protocol = "http://";
-      const char* host = "192.168.4.122:";  // this will become an IP address
-      const char* port = "3001/";
-      const char* route = "motion-reading";
-
-      int totalLength = strlen(protocol) + strlen(host) + strlen(port) + strlen(route) + 1;  // +1 for null terminator
-
-      char url[totalLength];  // make sure this is large enough to hold the entire URL
-      sprintf(url, "%s%s%s%s", protocol, host, port, route);
-
-      Serial.print("sending to:");
-      Serial.println(url);
-      Serial.print("sending: ");
-      Serial.println(httpRequestData);
-
-      http.begin(url);  // Specify destination for HTTP request
-      http.addHeader("Content-Type", "application/json");  // Specify content-type header
-
-      //String httpRequestData = "{\"time\":\"value\"}";  // Create JSON data to send
-      int httpResponseCode = http.POST(httpRequestData);  // Send the actual POST request
-
-      if (httpResponseCode>0) {
-        Serial.println("got a response");
-        String response = http.getString();  // Get the response to the request
-        Serial.println(httpResponseCode);   // Print HTTP return code
-        Serial.println(response);           // Print request response payload
-      } else {
-        Serial.println("failed");
-        Serial.print("Error on sending POST: ");
-        Serial.println(httpResponseCode);
-      }
-
-      http.end();  // Close connection
-
-  }
-}
 
 //Returns true if the MLX90640 is detected on the I2C bus
 boolean isConnected()
@@ -360,4 +316,137 @@ boolean isConnected()
   if (Wire.endTransmission() != 0)
     return (false); //Sensor did not ACK
   return (true);
+}
+
+
+void sendHttpData(String route, String httpRequestData) {
+  if (WiFi.status() == WL_CONNECTED) { 
+    HTTPClient http;
+
+    const char* protocol = "http://";
+    const char* host = "192.168.4.122:";  // this will become an IP address
+    const char* port = "3001/";
+
+    int totalLength = strlen(protocol) + strlen(host) + strlen(port) + route.length() + 1;  // +1 for null terminator
+
+    char url[totalLength];  // make sure this is large enough to hold the entire URL
+    sprintf(url, "%s%s%s%s", protocol, host, port, route.c_str());
+
+    Serial.print("sending to:");
+    Serial.println(url);
+    Serial.print("sending: ");
+    Serial.println(httpRequestData);
+
+    http.begin(url);  // Specify destination for HTTP request
+    http.addHeader("Content-Type", "application/json");  // Specify content-type header
+
+    int httpResponseCode = http.POST(httpRequestData);  // Send the actual POST request
+
+    if (httpResponseCode>0) {
+      Serial.println("got a response");
+      String response = http.getString();  // Get the response to the request
+      Serial.println(httpResponseCode);   // Print HTTP return code
+      Serial.println(response);           // Print request response payload
+    } else {
+      Serial.println("failed");
+      Serial.print("Error on sending POST: ");
+      Serial.println(httpResponseCode);
+    }
+
+    http.end();  // Close connection
+  }
+}
+
+
+void sendHttpMotionData(unsigned long time_read, bool motion) {
+  StaticJsonDocument<200> obj;  // Create a static JSON document with 200 bytes
+
+  // Add some key/value pairs
+  obj["sensor_id"] = SENSOR_ID;
+  obj["motion"] = motion ? "true" : "false";
+  obj["time_read"] = time_read;
+
+  // Generate the string to send
+  String httpRequestData;
+  serializeJson(obj, httpRequestData);
+
+  sendHttpData("motion-reading", httpRequestData);
+}
+
+
+void sendHttpThermalData(unsigned long time_read, String path) {
+    Serial.println("sending thermal data");
+
+    if (WiFi.status() == WL_CONNECTED) {
+      HTTPClient http;
+      DynamicJsonDocument obj(8192); // (mxl_rows*5+1)*mlx_cols=3872, assumes "xx.x xx.x...\n"  measured at 4708, hmmm
+
+      obj["sensor_id"] = SENSOR_ID;
+      obj["time_read"] = time_read;
+
+      // Read thermal data file from SD card
+      File file = SD_MMC.open(path);
+      if (!file) {
+        Serial.println("Failed to open file for reading");
+        return;
+      }
+
+      size_t size = file.size();
+      char buf[size+1];
+      file.readBytes(buf, size);
+      buf[size] = '\0';  // Null-terminate the string
+
+      obj["thermal_data"] = buf;
+
+      String httpRequestData;
+      //serializeJson(obj, httpRequestData);
+      size_t written = serializeJson(obj, httpRequestData);
+      Serial.print("thermal data size: ");
+      Serial.println(written);
+      if (written < obj.memoryUsage()) {
+        Serial.println("serializeJson failed: ran out of memory");
+        return;
+      }
+
+
+      // The rest of your HTTP request code here...
+      sendHttpData("thermal-reading", httpRequestData);
+    }
+
+    Serial.println("sent thermal data");
+}
+
+
+
+void sendHttpImageData(unsigned long time_read, String image_path, int people_detected) {
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+    StaticJsonDocument<256> obj;
+
+    obj["sensor_id"] = SENSOR_ID;
+    obj["time_read"] = time_read;
+    obj["image_path"] = image_path;
+    obj["people_detected"] = people_detected;
+
+    // Read image file from SD card
+    File file = SD_MMC.open(image_path);
+    if (!file) {
+      Serial.println("Failed to open file for reading");
+      return;
+    }
+
+    size_t size = file.size();
+    uint8_t buf[size];
+    file.read(buf, size);
+
+    // Convert binary data to base64
+    String base64Image = base64::encode(buf, size);
+
+    obj["image"] = base64Image;
+
+    String httpRequestData;
+    serializeJson(obj, httpRequestData);
+
+    sendHttpData("image-reading", httpRequestData);
+  }
 }

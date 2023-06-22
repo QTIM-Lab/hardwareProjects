@@ -1,13 +1,14 @@
 #include "Arduino.h"
 #include "camera.h"
+
 #include <stdio.h>
 #include "file.h"
 
 #include "lapse.h"
 #include "sd_read_write.h"
 #include "SD_MMC.h"
-//#include "MLX90640_API.h"
-//#include "MLX90640_I2C_Driver.h"
+
+
 
 unsigned long fileIndex = 0;
 unsigned long lapseIndex = 0;
@@ -22,10 +23,9 @@ unsigned long maxImages = 10000;
 #define MLX_COLS 32
 
 unsigned long fileIndexTherm = 0;  // counter for filenames
-char filename[32]; // buffer to hold filenames: "/thermal_xxx.txt"
+
 char floatStr[8]; // buffer big enough for 7-character float
 char rowStr[256] = "";  // buffer for 32 floats with 1 digit precision, \n, NULL: "xx.x xx.x ... \nNULL" 
-
 
 
 void setInterval(unsigned long delta)
@@ -49,7 +49,7 @@ void setThermalCamData(const byte& inMLX90640_address, float* inMlx90640To, cons
   mlx90640a = inMlx90640;
 }
 
-bool takeAndStoreThermalPic() {
+bool takeAndStoreThermalPic(const char* filename) {
 
     for (byte x = 0 ; x < 2 ; x++) //Read both subpages
     {
@@ -70,9 +70,6 @@ bool takeAndStoreThermalPic() {
         MLX90640_CalculateTo(mlx90640Frame, &mlx90640a, emissivity, tr, mlx90640To);
     }
 
-    sprintf(filename, "/thermal_%03d.txt", fileIndexTherm);
-    // writeFile(SD_MMC, filename, "");
-    // appendFile(SD_MMC, filename, "World!\n");
     for (uint8_t h=0; h < MLX_ROWS; h++) {// Row – 24 rows   
         for (uint8_t w=0; w < MLX_COLS; w++) {// Column – 32 columns
 
@@ -81,15 +78,9 @@ bool takeAndStoreThermalPic() {
             dtostrf(val, 5, 1, floatStr); // https://arduino.stackexchange.com/questions/26832/how-do-i-convert-a-float-into-char
             strcat(rowStr, floatStr); 
             strcat(rowStr, " ");
-
-            //Serial.print(val, 1);
-            //Serial.print(" ");
         }
 
         strcat(rowStr, "\n");
-        // Serial.println();
-        //Serial.print("rowstr:");
-        //Serial.println(rowStr);
         appendFile(SD_MMC, filename, rowStr);
         rowStr[0] = '\0'; // empty the string by making the first char a NULL
     }
@@ -97,6 +88,28 @@ bool takeAndStoreThermalPic() {
     fileIndexTherm = fileIndexTherm + 1.0;
     Serial.print("thermal image saved: ");
     Serial.println(filename);
+
+    return true;
+}
+
+bool takeAndStorePic(const char* filename) 
+{
+    camera_fb_t *fb = NULL;
+    esp_err_t res = ESP_OK;
+    fb = esp_camera_fb_get();  
+    if (!fb)
+    {
+        Serial.println("Camera capture failed");
+        return false;
+    }
+
+    if(!writeFile(filename, (const unsigned char *)fb->buf, fb->len))
+    {
+        Serial.println("camera save to file failed");
+        return false;
+    }
+    fileIndex++;
+    esp_camera_fb_return(fb);
 
     return true;
 }
@@ -127,10 +140,12 @@ bool stopLapse()
 
 
 
-bool processLapse(unsigned long dt)
+SensorStatus processLapse(unsigned long dt)
 {
-    if(!lapseRunning) return false;
-    if(fileIndex > maxImages) return false;
+    SensorStatus status;  
+
+    if(!lapseRunning) return status;
+    if(fileIndex > maxImages) return status;
 
     lastFrameDelta += dt;
     if(lastFrameDelta >= frameInterval)
@@ -138,28 +153,28 @@ bool processLapse(unsigned long dt)
         Serial.println("interval complete, taking pics");
 
         lastFrameDelta -= frameInterval;
-        camera_fb_t *fb = NULL;
-        esp_err_t res = ESP_OK;
-        fb = esp_camera_fb_get();
-        if (!fb)
-        {
-	        Serial.println("Camera capture failed");
-	        return false;
+        
+        char camFileName[64];  // what size is sufficient?
+        char thermFileName[64];
+        sprintf(camFileName, "/lapse%03d/pic%05d.jpg", lapseIndex, fileIndex);
+        sprintf(thermFileName, "/lapse%03d/thermal_%03d.txt", lapseIndex, fileIndexTherm);
+
+        if (takeAndStorePic(camFileName)){
+            status.tookPicture = true;
+            status.setPictureFilename(camFileName);
+            Serial.print("saved cam image - ");
+            Serial.println(camFileName);
         }
 
-        char path[32];
-        sprintf(path, "/lapse%03d/pic%05d.jpg", lapseIndex, fileIndex);
-        Serial.println(path);
-        if(!writeFile(path, (const unsigned char *)fb->buf, fb->len))
-        {
-            lapseRunning = false;
-            return false;
+        Serial.println("taking thermal");
+        if (takeAndStoreThermalPic(thermFileName)){
+            Serial.println("took the thermal pic");
+            status.tookThermalImage = true;
+            status.setThermalFilename(thermFileName);
+            Serial.print("saved thermal image - ");
+            Serial.println(thermFileName);
         }
-        fileIndex++;
-        esp_camera_fb_return(fb);
-
-        takeAndStoreThermalPic();
     }
 
-    return true;
+    return status;
 }
