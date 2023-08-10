@@ -232,6 +232,7 @@ void get_network_info(){
 void setup()
 {
   Serial.begin(115200);
+  delay(1000);
 
   Serial.println("setup begin");
 
@@ -248,14 +249,16 @@ void setup()
   setupMLX90460();
   Serial.println(" Thermal camera setup, done");
   // setupWiFi();
-  Serial.println(" Wifi setup, done");
-  get_network_info();
+  //Serial.println(" Wifi setup, done");
+  //get_network_info();
 
   setInterval(60000);
   setMaxCount(1000);
   setThermalCamData(MLX90640_address, mlx90640To, mlx90640);
 
   pinMode(PYE_IR_PIN, INPUT);
+
+  appendFile(SD_MMC, motionFileLog, "\nReset Motion Event Log via Reboot \n");
 
   Serial.println("setup, done");
   startLapse();
