@@ -21,9 +21,10 @@ CREATE TABLE data_types (
 CREATE TABLE readings (
   id INTEGER PRIMARY KEY,
   sensor_id INTEGER,
-  timestamp INTEGER,
+  time_write DATETIME, -- time of the row being added
+  time_read INTEGER, -- sensor clock time of the reading
   data_type_id INTEGER,   -- the row of the data_types table with the data
-  data_id INTEGER,  -- the row of the table with the data
+  data_id INTEGER,  -- the row of the table with the data - this is really a FOREIGN_KEY, but we don't know which table
   FOREIGN KEY (data_type_id) REFERENCES data_types(id)
   FOREIGN KEY (sensor_id) REFERENCES sensors(id)
 );
@@ -31,14 +32,15 @@ CREATE TABLE readings (
 CREATE TABLE image_data (
   id INTEGER PRIMARY KEY,
   filename TEXT,
-  timestamp INTEGER,
-  peopleDetected INTEGER,
-  FOREIGN KEY (id) REFERENCES readings(data_id)
+  peopleDetected INTEGER
 );
 
-CREATE TABLE motion_events (
+CREATE TABLE thermal_image_data (
   id INTEGER PRIMARY KEY,
-  motion_detected INTEGER,  -- always a 1?  we have a row for every motion detected?
-  timestamp INTEGER,
-  FOREIGN KEY (id) REFERENCES readings(data_id)
+  filename TEXT
+);
+
+CREATE TABLE motion_data (
+  id INTEGER PRIMARY KEY,
+  motion_detected INTEGER  -- row for each change 
 );

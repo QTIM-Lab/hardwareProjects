@@ -3,9 +3,9 @@ import SensorReadingsChart from './SensorReadingsChart';
 
 function App() {
   return (
-    <div>
+    <div style={{ margin: '20px' }}>
       <h1>Sensor Readings</h1>
-      <SensorReadingsChart sensorId="1" />
+      <SensorReadingsChart sensorId="2" />
     </div>
   );
 }
