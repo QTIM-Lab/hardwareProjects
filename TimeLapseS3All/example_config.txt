@@ -1,0 +1,11 @@
+{
+  "environment": "dev",
+  "prod": {
+    "ssid": "networkName",
+    "password": "pswd"
+  },
+  "dev": {
+    "ssid": "hogback",
+    "password": "bubba1966"
+  }
+}

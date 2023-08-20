@@ -166,14 +166,14 @@ SensorStatus processLapse(unsigned long dt)
             Serial.println(camFileName);
         }
 
-        Serial.println("taking thermal");
-        if (takeAndStoreThermalPic(thermFileName)){
-            Serial.println("took the thermal pic");
-            status.tookThermalImage = true;
-            status.setThermalFilename(thermFileName);
-            Serial.print("saved thermal image - ");
-            Serial.println(thermFileName);
-        }
+        // Serial.println("taking thermal");
+        // if (takeAndStoreThermalPic(thermFileName)){
+        //     Serial.println("took the thermal pic");
+        //     status.tookThermalImage = true;
+        //     status.setThermalFilename(thermFileName);
+        //     Serial.print("saved thermal image - ");
+        //     Serial.println(thermFileName);
+        // }
     }
 
     return status;

@@ -246,11 +246,11 @@ void setup()
   Serial.println(" MMC test, done");
   initCamera();
   Serial.println(" Camera setup, done");
-  setupMLX90460();
+  // setupMLX90460();
   Serial.println(" Thermal camera setup, done");
-  // setupWiFi();
-  //Serial.println(" Wifi setup, done");
-  //get_network_info();
+  setupWiFi();
+  Serial.println(" Wifi setup, done");
+  get_network_info();
 
   setInterval(60000);
   setMaxCount(1000);
@@ -275,6 +275,12 @@ void loop()
   if (lapseStatus.tookThermalImage) {
     Serial.println(lapseStatus.debugPrint());
     // sendHttpThermalData(t, lapseStatus.thermalFilename);
+  } 
+
+  if (lapseStatus.tookPicture) {
+    Serial.println(lapseStatus.debugPrint());
+    sendHttpImageData(t, lapseStatus.pictureFilename, -1);
+    Serial.println();
   } 
 
   static int lastMotionState = 0;
@@ -324,10 +330,14 @@ boolean isConnected()
 
 void sendHttpData(String route, String httpRequestData) {
   if (WiFi.status() == WL_CONNECTED) { 
+
+    Serial.println("about to send data");
+
+
     HTTPClient http;
 
     const char* protocol = "http://";
-    const char* host = "192.168.4.122:";  // this will become an IP address
+    const char* host = "192.168.4.151:";  // this will become an IP address
     const char* port = "3001/";
 
     int totalLength = strlen(protocol) + strlen(host) + strlen(port) + route.length() + 1;  // +1 for null terminator
@@ -357,6 +367,10 @@ void sendHttpData(String route, String httpRequestData) {
     }
 
     http.end();  // Close connection
+  }
+  else {
+    Serial.println("Wifi not connected. Following data not sent:");
+    Serial.println(httpRequestData);
   }
 }
 
@@ -431,6 +445,8 @@ void sendHttpImageData(unsigned long time_read, String image_path, int people_de
     obj["image_path"] = image_path;
     obj["people_detected"] = people_detected;
 
+    Serial.println("about to open file");
+
     // Read image file from SD card
     File file = SD_MMC.open(image_path);
     if (!file) {
@@ -438,18 +454,34 @@ void sendHttpImageData(unsigned long time_read, String image_path, int people_de
       return;
     }
 
+    Serial.println("opened file");
+
     size_t size = file.size();
-    uint8_t buf[size];
-    file.read(buf, size);
+
+Serial.print("file size is:");
+Serial.println(size);
+
+uint8_t* buf = new uint8_t[size + 10];
+file.read(buf, size);
+
+
+    // uint8_t buf[size + 10];
+    // file.read(buf, size);
+
+Serial.println("about to encode");
 
     // Convert binary data to base64
     String base64Image = base64::encode(buf, size);
 
+delete[] buf;
+
     obj["image"] = base64Image;
 
+Serial.println("about to serialize");
     String httpRequestData;
     serializeJson(obj, httpRequestData);
 
+Serial.println("calling sendHttpData)");
     sendHttpData("image-reading", httpRequestData);
   }
 }
