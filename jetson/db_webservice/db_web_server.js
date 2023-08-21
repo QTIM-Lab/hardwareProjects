@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const multer  = require('multer');
 const fs = require('fs');
+const path = require('path'); // Import the path module
 
 const app = express();
 app.use(cors());
@@ -221,43 +222,64 @@ app.post('/motion-reading', (req, res) => {
 
 
 app.post('/image-reading', (req, res) => {
-  const { sensor_id, image_path, people_detected, time_read } = req.body;
+  const { sensor_id, image_path, people_detected, time_read, image } = req.body;
   const IMAGE_EVENT_ID = 2;
+  const UPLOAD_DIR = 'uploads'; // dir to save the images
 
   console.log("Got an image-reading request - sensor: " + sensor_id + " time: " + time_read);
+  console.log("whole she-bang:");
+  console.log(req.body);
 
-  db.serialize(() => {
-    db.run('BEGIN TRANSACTION');
+  // 1. Decode the base64 encoded image
+  const buffer = Buffer.from(image, 'base64');
 
-    let imageQuery = 'INSERT INTO image_data(filename, peopleDetected) VALUES (?, ?)';
-    db.run(imageQuery, [image_path, people_detected], function (err) {
-      if (err) {
-        console.log(" Error in the image query");
-        db.run('ROLLBACK');
-        return res.status(500).json({ error: err.message });
-      }
-      console.log(` Added image_data, row: ${this.lastID}`);
-      let imageId = this.lastID;
+  // 2. Save the decoded image to a specific directory
+  // Assuming `image_path` contains the filename of the image (e.g., "image1.jpg")
+  const filePath = path.join(UPLOAD_DIR, image_path);
 
-      addReading(sensor_id, time_read, IMAGE_EVENT_ID, imageId, db, (err) => {
+  fs.writeFile(filePath, buffer, (err) => {
+    if (err) {
+      console.log("Failed to save the image", err);
+      return res.status(500).json({ error: "Failed to save the image" });
+    }
+    else {
+      console.log("wrote to " + filePath);
+    }
+
+
+    db.serialize(() => {
+      db.run('BEGIN TRANSACTION');
+
+      let imageQuery = 'INSERT INTO image_data(filename, peopleDetected) VALUES (?, ?)';
+      db.run(imageQuery, [image_path, people_detected], function (err) {
         if (err) {
-          console.log(" Error with reading, rolling back");
+          console.log(" Error in the image query");
           db.run('ROLLBACK');
           return res.status(500).json({ error: err.message });
         }
-        
-        db.run('COMMIT', (commitErr) => {
-          if (commitErr) {
+        console.log(` Added image_data, row: ${this.lastID}`);
+        let imageId = this.lastID;
+
+        addReading(sensor_id, time_read, IMAGE_EVENT_ID, imageId, db, (err) => {
+          if (err) {
+            console.log(" Error with reading, rolling back");
             db.run('ROLLBACK');
-            console.log("Transaction failed, rolling back", commitErr);
-            return res.status(500).json({ error: commitErr.message });
+            return res.status(500).json({ error: err.message });
           }
-          console.log("Transaction successful");
-          return res.status(200).json({ message: "Success" });
+          
+          db.run('COMMIT', (commitErr) => {
+            if (commitErr) {
+              db.run('ROLLBACK');
+              console.log("Transaction failed, rolling back", commitErr);
+              return res.status(500).json({ error: commitErr.message });
+            }
+            console.log("Transaction successful");
+            return res.status(200).json({ message: "Success" });
+          });
         });
       });
     });
-  });
+  })
 });
 
 

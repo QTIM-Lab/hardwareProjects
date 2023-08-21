@@ -5,3 +5,4 @@ debug.cfg
 debug_custom.json
 esp32.svd
 *.db
+/jetson/uploads/

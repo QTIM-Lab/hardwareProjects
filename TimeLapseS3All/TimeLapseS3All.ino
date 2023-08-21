@@ -337,7 +337,7 @@ void sendHttpData(String route, String httpRequestData) {
     HTTPClient http;
 
     const char* protocol = "http://";
-    const char* host = "192.168.4.151:";  // this will become an IP address
+    const char* host = "192.168.4.122:";  // this will become an IP address
     const char* port = "3001/";
 
     int totalLength = strlen(protocol) + strlen(host) + strlen(port) + route.length() + 1;  // +1 for null terminator
@@ -438,7 +438,8 @@ void sendHttpThermalData(unsigned long time_read, String path) {
 void sendHttpImageData(unsigned long time_read, String image_path, int people_detected) {
   if (WiFi.status() == WL_CONNECTED) {
     HTTPClient http;
-    StaticJsonDocument<256> obj;
+    // StaticJsonDocument<256> obj;
+    DynamicJsonDocument obj(9999); // not sure how big is needed
 
     obj["sensor_id"] = SENSOR_ID;
     obj["time_read"] = time_read;
@@ -473,13 +474,16 @@ Serial.println("about to encode");
     // Convert binary data to base64
     String base64Image = base64::encode(buf, size);
 
-delete[] buf;
+Serial.println(base64Image);
+
 
     obj["image"] = base64Image;
+    delete[] buf;
 
 Serial.println("about to serialize");
     String httpRequestData;
     serializeJson(obj, httpRequestData);
+Serial.println(httpRequestData);
 
 Serial.println("calling sendHttpData)");
     sendHttpData("image-reading", httpRequestData);
