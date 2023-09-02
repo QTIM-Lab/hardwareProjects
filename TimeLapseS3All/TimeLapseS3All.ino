@@ -36,9 +36,8 @@ String password = "read from config";
 // IPAddress primaryDNS(8, 8, 8, 8);   // optional
 // IPAddress secondaryDNS(8, 8, 4, 4); // optional
 
-// const char* logApi = "/api/log";
-
-#define SENSOR_ID "2" // fake data test sensor
+// const char* logApi = "/api/log"
+String SENSOR_ID = "Not Set"; // fake data test sensor
 // each sensor will need a unique ID, also part of the config file?
 
 
@@ -47,7 +46,9 @@ String password = "read from config";
 #define SD_MMC_D0  40 // Pin for SD card access
 
 #define PYE_IR_PIN 42 // Pin for motion sensor signal
+
 const unsigned long MOTION_INTERVAL=5000;
+const unsigned long PIC_INTERVAL=15000; // 60000 = 1 per minute
 const char* motionFileLog = "/Motion.log";
 
 void setupAndTestMMC() {
@@ -161,15 +162,18 @@ IPAddress staticIP(192,168,4,50); // For example
 IPAddress gateway(192,168,4,1);
 IPAddress subnet(255,255,255,0);
 
+
 void setupWiFi () 
 {
-    loadNetworkPassword();
+    loadConfig();
     Serial.println("connecting to:");
     Serial.println(ssid);
     Serial.println(password);
 
     WiFi.mode(WIFI_STA);
-    WiFi.config(staticIP, gateway, subnet);
+
+    // let the router assign an IP - for a fixed IP, uncomment the next line
+    // WiFi.config(staticIP, gateway, subnet);
     WiFi.begin(ssid, password);
     Serial.println("\nConnecting");
 
@@ -183,7 +187,7 @@ void setupWiFi ()
     Serial.println(WiFi.localIP());
 }
 
-void loadNetworkPassword () 
+void loadConfig () 
 { 
     File configFile = SD_MMC.open("/config.txt");
     if (!configFile) {
@@ -191,7 +195,7 @@ void loadNetworkPassword ()
       return;
     }
 
-    const size_t capacity = 512;
+    const size_t capacity = 512; // how big is the config?  Dynamic seems safer.
     StaticJsonDocument<capacity> doc;
 
     char buffer[capacity];
@@ -204,6 +208,7 @@ void loadNetworkPassword ()
       return;
     }
 
+    SENSOR_ID = doc["sensorId"].as<String>();
     String env = doc["environment"];
     ssid = doc[env]["ssid"].as<String>();
     password = doc[env]["password"].as<String>();
@@ -252,8 +257,9 @@ void setup()
   Serial.println(" Wifi setup, done");
   get_network_info();
 
-  setInterval(60000);
-  setMaxCount(1000);
+  setInterval(PIC_INTERVAL);
+  setMaxCount(1000);  // stop taking pics after this many calls
+
   setThermalCamData(MLX90640_address, mlx90640To, mlx90640);
 
   pinMode(PYE_IR_PIN, INPUT);
@@ -337,7 +343,8 @@ void sendHttpData(String route, String httpRequestData) {
     HTTPClient http;
 
     const char* protocol = "http://";
-    const char* host = "192.168.4.122:";  // this will become an IP address
+    //const char* host = "192.168.4.122:";  
+    const char* host = "10.0.0.52:";
     const char* port = "3001/";
 
     int totalLength = strlen(protocol) + strlen(host) + strlen(port) + route.length() + 1;  // +1 for null terminator
@@ -438,8 +445,10 @@ void sendHttpThermalData(unsigned long time_read, String path) {
 void sendHttpImageData(unsigned long time_read, String image_path, int people_detected) {
   if (WiFi.status() == WL_CONNECTED) {
     HTTPClient http;
-    // StaticJsonDocument<256> obj;
-    DynamicJsonDocument obj(9999); // not sure how big is needed
+
+    // the StaticJsonDoc seems to cause a stack overflow. There's more heap available so dynamic
+    //StaticJsonDocument<12288> obj; // used https://arduinojson.org/v6/assistant
+    DynamicJsonDocument obj(12288); // used https://arduinojson.org/v6/assistant
 
     obj["sensor_id"] = SENSOR_ID;
     obj["time_read"] = time_read;
