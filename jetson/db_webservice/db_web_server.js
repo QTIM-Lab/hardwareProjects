@@ -46,6 +46,7 @@ function authenticateToken(req, res, next) {
 
 // Define a route for getting sensor data
 app.get("/api/sensors", authenticateToken, (req, res) => {
+  console.log("READ Req: sensors");
   // Query the database for sensor data
   db.all("SELECT * FROM sensors", (err, rows) => {
     if (err) {
@@ -60,6 +61,7 @@ app.get("/api/sensors", authenticateToken, (req, res) => {
 
 // Define a route for getting sensor data
 app.get("/api/data_types", authenticateToken, (req, res) => {
+  console.log("READ Req: data_types");
   // Query the database for sensor data
   db.all("SELECT * FROM data_types", (err, rows) => {
     if (err) {
@@ -88,6 +90,7 @@ app.get("/api/sensor-types", authenticateToken, (req, res) => {
 
 // Define a route for getting readings data
 app.get("/api/readings", authenticateToken, (req, res) => {
+  console.log("READ Req: readings");
   // Query the database for readings data
   db.all("SELECT * FROM readings", (err, rows) => {
     if (err) {
@@ -102,6 +105,7 @@ app.get("/api/readings", authenticateToken, (req, res) => {
 
 // Define a route for getting image data
 app.get("/api/image-data", authenticateToken, (req, res) => {
+  console.log("READ Req: image-data - wait, should this be retired?");
   // Query the database for image data
   db.all("SELECT * FROM image_data", (err, rows) => {
     if (err) {
@@ -114,8 +118,40 @@ app.get("/api/image-data", authenticateToken, (req, res) => {
   });
 });
 
+app.get("/get-thermal/:readingId", (req, res) => {
+  const readingId = req.params.readingId;
+  console.log("READ Req: thermal data : " + readingId);
+
+  const query = `
+    SELECT id.data_id, thermal_image_data.filename 
+    FROM readings AS id 
+    JOIN thermal_image_data ON id.data_id = thermal_image_data.id 
+    WHERE id.id = ? AND id.data_type_id = 3
+  `;
+
+  db.get(query, [readingId], (err, row) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+
+    if (row && row.filename) {
+      fs.readFile(path.resolve(row.filename), "utf8", (err, fileContent) => {
+        if (err) {
+          return res.status(500).json({ error: "Error reading file content" });
+        }
+
+        res.setHeader("Content-Type", "text/plain");
+        res.send(fileContent);
+      });
+    } else {
+      res.status(404).json({ error: "Thermal data not found" });
+    }
+  });
+});
+
 app.get("/get-image/:readingId", (req, res) => {
   const readingId = req.params.readingId;
+  console.log("READ Req: image data : " + readingId);
 
   // Fetch the image details from the database based on the readingId
   const query = `
@@ -155,7 +191,7 @@ app.get("/get-image/:readingId", (req, res) => {
 
 // Define a route for getting motion event data
 app.get("/api/motion-readings", authenticateToken, (req, res) => {
-  console.log("got a motion-readings request");
+  console.log("READ Req: motion data");
   // Query the database for motion event data
   db.all("SELECT * FROM motion_data", (err, rows) => {
     if (err) {
@@ -169,7 +205,7 @@ app.get("/api/motion-readings", authenticateToken, (req, res) => {
 });
 
 app.get("/api/thermal-readings", authenticateToken, (req, res) => {
-  console.log("got a thermal-readings request");
+  console.log("READ Req: thermal readings - should this be retired?");
   // Query the database for motion event data
   db.all("SELECT * FROM thermal_image_data", (err, rows) => {
     if (err) {
@@ -183,6 +219,7 @@ app.get("/api/thermal-readings", authenticateToken, (req, res) => {
 });
 
 app.get("/api/people-detected", authenticateToken, (req, res) => {
+  console.log("READ Req: people detected");
   const query = `
       SELECT r.timestamp, i.peopleDetected
       FROM readings r
@@ -222,7 +259,7 @@ app.post("/motion-reading", (req, res) => {
   const MOTION_EVENT_ID = 1;
 
   console.log(
-    "got a motion-reading request - sensor:" + sensor_id + " time: " + time_read
+    "WRITE Req: motion - sensor ID:" + sensor_id + " time: " + time_read
   );
 
   db.serialize(() => {
@@ -268,13 +305,11 @@ app.post("/image-reading", (req, res) => {
   const IMAGE_EVENT_ID = 2;
 
   console.log(
-    "Got an image-reading request - sensor: " +
+    "WRITE Req image-reading request - sensor: " +
       sensor_id +
       " time: " +
       time_read
   );
-  console.log("whole she-bang:");
-  console.log(req.body);
 
   // 1. Decode the base64 encoded image
   const buffer = Buffer.from(image, "base64");
@@ -369,15 +404,12 @@ app.post("/thermal-reading", (req, res) => {
   const { sensor_id, time_read, thermal_data } = req.body;
 
   console.log(
-    "Got a thermal-reading request - sensor: " +
-      sensor_id +
-      " time: " +
-      time_read
+    "WRITE Req thermal - sensor: " + sensor_id + " time: " + time_read
   );
 
   // Write thermalData to a .txt file
-  const filepath = `./images/${sensor_id}_${time_read}.txt`;
-  fs.writeFileSync(filepath, thermal_data);
+  const filepath = `./images/${sensor_id}_${time_read}.json`;
+  fs.writeFileSync(filepath, JSON.stringify(thermal_data));
 
   db.serialize(() => {
     db.run("BEGIN TRANSACTION");
@@ -421,41 +453,41 @@ app.post("/thermal-reading", (req, res) => {
   });
 });
 
-app.post("/api/get-thermal-image", (req, res) => {
-  const imageId = req.body.image_id;
+// app.post("/api/get-thermal-image", (req, res) => {
+//   const imageId = req.body.image_id;
 
-  console.log("Received a request for a thermal image - image_id: " + imageId);
+//   console.log("Received a request for a thermal image - image_id: " + imageId);
 
-  // Query the database for the filename of the requested thermal image
-  let thermalImageQuery =
-    "SELECT filename FROM thermal_image_data WHERE id = ?";
-  db.get(thermalImageQuery, [imageId], (err, row) => {
-    if (err) {
-      console.error(err);
-      return res.status(500).json({ error: "Internal server error" });
-    } else if (!row) {
-      return res
-        .status(404)
-        .json({ error: "No image found with the provided id" });
-    } else {
-      // The filename of the thermal image was found in the database
-      const filepath = row.filename;
+//   // Query the database for the filename of the requested thermal image
+//   let thermalImageQuery =
+//     "SELECT filename FROM thermal_image_data WHERE id = ?";
+//   db.get(thermalImageQuery, [imageId], (err, row) => {
+//     if (err) {
+//       console.error(err);
+//       return res.status(500).json({ error: "Internal server error" });
+//     } else if (!row) {
+//       return res
+//         .status(404)
+//         .json({ error: "No image found with the provided id" });
+//     } else {
+//       // The filename of the thermal image was found in the database
+//       const filepath = row.filename;
 
-      // Read the thermal image file as a binary string
-      fs.readFile(filepath, "binary", (err, file) => {
-        if (err) {
-          console.error(err);
-          return res
-            .status(500)
-            .json({ error: "Failed to read the image file" });
-        } else {
-          // Return the thermal image as a binary string
-          return res.status(200).json({ image_data: file });
-        }
-      });
-    }
-  });
-});
+//       // Read the thermal image file as a binary string
+//       fs.readFile(filepath, "binary", (err, file) => {
+//         if (err) {
+//           console.error(err);
+//           return res
+//             .status(500)
+//             .json({ error: "Failed to read the image file" });
+//         } else {
+//           // Return the thermal image as a binary string
+//           return res.status(200).json({ image_data: file });
+//         }
+//       });
+//     }
+//   });
+// });
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {

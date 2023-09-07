@@ -55,11 +55,9 @@ bool takeAndStoreThermalPic(const char* filename) {
     {
         uint16_t mlx90640Frame[834];
         int status = MLX90640_GetFrameData(MLX90640_address, mlx90640Frame);
-        if (status < 0)
-        {
+        
         Serial.print("GetFrame Error: ");
         Serial.println(status);
-        }
 
         float vdd = MLX90640_GetVdd(mlx90640Frame, &mlx90640a);
         float Ta = MLX90640_GetTa(mlx90640Frame, &mlx90640a);
@@ -69,6 +67,8 @@ bool takeAndStoreThermalPic(const char* filename) {
 
         MLX90640_CalculateTo(mlx90640Frame, &mlx90640a, emissivity, tr, mlx90640To);
     }
+
+    Serial.println("halfway through takeAndStoreThermalPic");
 
     for (uint8_t h=0; h < MLX_ROWS; h++) {// Row – 24 rows   
         for (uint8_t w=0; w < MLX_COLS; w++) {// Column – 32 columns
@@ -167,6 +167,7 @@ SensorStatus processLapse(unsigned long dt)
         }
 
         // Serial.println("taking thermal");
+        // Serial.println(thermFileName);
         // if (takeAndStoreThermalPic(thermFileName)){
         //     Serial.println("took the thermal pic");
         //     status.tookThermalImage = true;

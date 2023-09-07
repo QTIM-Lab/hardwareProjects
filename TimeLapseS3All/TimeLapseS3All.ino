@@ -173,7 +173,7 @@ void setupWiFi ()
     WiFi.mode(WIFI_STA);
 
     // let the router assign an IP - for a fixed IP, uncomment the next line
-    // WiFi.config(staticIP, gateway, subnet);
+    WiFi.config(staticIP, gateway, subnet);
     WiFi.begin(ssid, password);
     Serial.println("\nConnecting");
 
@@ -256,6 +256,7 @@ void setup()
   setupWiFi();
   Serial.println(" Wifi setup, done");
   get_network_info();
+  testServerCommunication();
 
   setInterval(PIC_INTERVAL);
   setMaxCount(1000);  // stop taking pics after this many calls
@@ -270,6 +271,41 @@ void setup()
   startLapse();
 }
 
+void testServerCommunication() {
+
+
+  Serial.println("about to test server communicaiton");
+  
+    Serial.println("about to send data");
+
+
+    HTTPClient http;
+
+    const char* protocol = "http://";
+    const char* host = "192.168.4.122:";  
+    //const char* host = "10.0.0.52:";
+    const char* port = "3001/";
+    const char* route = "api/sensors";
+
+    int totalLength = strlen(protocol) + strlen(host) + strlen(port) + strlen(route) + 1;  // +1 for null terminator
+
+    char url[totalLength];  // make sure this is large enough to hold the entire URL
+    sprintf(url, "%s%s%s%s", protocol, host, port, route);
+
+    Serial.print("getting from:");
+    Serial.println(url);
+
+    http.begin(url);  // Specify destination for HTTP request
+    http.addHeader("Content-Type", "application/json");  // Specify content-type header
+
+    int httpResponseCode = http.GET();  
+
+    Serial.print("response code:" );
+    Serial.println(httpResponseCode);   // Print HTTP return code
+    String response = http.getString();  // Get the response to the request
+    Serial.println(response);           // Print request response payload
+}
+
 void loop()
 {
   unsigned long t = millis();
@@ -280,7 +316,7 @@ void loop()
 
   if (lapseStatus.tookThermalImage) {
     Serial.println(lapseStatus.debugPrint());
-    // sendHttpThermalData(t, lapseStatus.thermalFilename);
+    sendHttpThermalData(t, lapseStatus.thermalFilename);
   } 
 
   if (lapseStatus.tookPicture) {
@@ -343,8 +379,8 @@ void sendHttpData(String route, String httpRequestData) {
     HTTPClient http;
 
     const char* protocol = "http://";
-    //const char* host = "192.168.4.122:";  
-    const char* host = "10.0.0.52:";
+    const char* host = "192.168.4.122:";  
+    //const char* host = "10.0.0.52:";
     const char* port = "3001/";
 
     int totalLength = strlen(protocol) + strlen(host) + strlen(port) + route.length() + 1;  // +1 for null terminator
