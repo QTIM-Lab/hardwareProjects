@@ -282,7 +282,7 @@ void testServerCommunication() {
     HTTPClient http;
 
     const char* protocol = "http://";
-    const char* host = "192.168.4.122:";  
+    const char* host = "192.168.4.1:";  
     //const char* host = "10.0.0.52:";
     const char* port = "3001/";
     const char* route = "api/sensors";
@@ -379,7 +379,7 @@ void sendHttpData(String route, String httpRequestData) {
     HTTPClient http;
 
     const char* protocol = "http://";
-    const char* host = "192.168.4.122:";  
+    const char* host = "192.168.4.1:";  
     //const char* host = "10.0.0.52:";
     const char* port = "3001/";
 
