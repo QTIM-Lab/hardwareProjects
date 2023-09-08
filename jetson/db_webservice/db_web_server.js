@@ -311,6 +311,17 @@ app.post("/image-reading", (req, res) => {
       time_read
   );
 
+  if (
+    sensor_id === undefined ||
+    time_read === undefined ||
+    image === undefined
+  ) {
+    console.log("  ** Bad request in image-reading **");
+    console.log("  ** REQ - ");
+    console.log(req);
+    return;
+  }
+
   // 1. Decode the base64 encoded image
   const buffer = Buffer.from(image, "base64");
 
