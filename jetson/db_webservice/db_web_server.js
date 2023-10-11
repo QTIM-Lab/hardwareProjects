@@ -279,9 +279,12 @@ app.post("/motion-reading", (req, res) => {
       let motionId = this.lastID;
 
       // Step 2: Add to readings table
+      console.log(" About to addReading");
+      console.log(" sensor_id: " + sensor_id + " motionId: " + motionId);
       addReading(sensor_id, time_read, MOTION_EVENT_ID, motionId, db, (err) => {
         if (err) {
           console.log(" Error with reading, rolling back");
+
           db.run("ROLLBACK");
           return res.status(500).json({ error: err.message });
         }
@@ -436,6 +439,8 @@ app.post("/thermal-reading", (req, res) => {
       console.log(` Added thermal_image_data, row: ${this.lastID}`);
       let image_id = this.lastID;
 
+      console.log(" About to addReading");
+      console.log(" sensor_id: " + sensor_id + " thermal_id: " + image_id);
       addReading(
         sensor_id,
         time_read,
@@ -445,6 +450,7 @@ app.post("/thermal-reading", (req, res) => {
         (err) => {
           if (err) {
             console.log(" Error with reading, rolling back");
+            console.log(" Error message: " + err.message);
             db.run("ROLLBACK");
             return res.status(500).json({ error: err.message });
           }
