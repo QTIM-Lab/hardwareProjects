@@ -25,14 +25,19 @@ const Readings = () => {
     if (params.row.data_type_id === 3) {
       try {
         const response = await fetch(
-          `http://localhost:3001/get-thermal/${params.row.id}`
+          `http://192.168.4.1:3001/get-thermal/${params.row.id}`
         );
 
         if (response.ok) {
           const fileContent = await response.text();
 
+          // Replace escaped newlines with actual newline characters
+          const normalizedContent = fileContent.replace(/\\n/g, "\n");
+
           // Step 1: Split the content by line breaks
-          const rows = fileContent.trim().split("\n");
+          const rows = normalizedContent.trim().split(/\r?\n/);
+          console.log("got " + rows.length + " rows");
+          console.log(rows);
 
           // Step 2 and 3: Transform rows into the desired format
           const data = [];
@@ -58,7 +63,7 @@ const Readings = () => {
     } else if (params.row.data_type_id === 2) {
       try {
         const response = await fetch(
-          `http://localhost:3001/get-image/${params.row.id}`
+          `http://192.168.4.1:3001/get-image/${params.row.id}`
         );
         const data = await response.json();
         setOverlayImage(data.image);
@@ -84,7 +89,7 @@ const Readings = () => {
   useEffect(() => {
     async function fetchData() {
       try {
-        const response = await fetch("http://localhost:3001/api/readings"); // Replace with your API endpoint
+        const response = await fetch("http://192.168.4.1:3001/api/readings"); // Replace with your API endpoint
         const data = await response.json();
         setReadingsData(data);
         setLoading(false);
