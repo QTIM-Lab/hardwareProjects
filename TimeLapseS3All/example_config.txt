@@ -6,7 +6,7 @@
     "password": "pswd"
   },
   "dev": {
-    "ssid": "hogback",
-    "password": "bubba1966"
+    "ssid": "stego",
+    "password": "bubbasaurus"
   }
 }

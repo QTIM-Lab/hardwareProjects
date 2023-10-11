@@ -1,0 +1,20 @@
+{
+  "sensorId" : "s3-20002",
+  "environment": "jet",
+  "prod": {
+    "ssid": "networkName",
+    "password": "pswd"
+  },
+  "jet": {
+    "ssid": "jetstego",
+    "password": "bubbasaurus"
+  },
+  "dev": {
+    "ssid": "stego",
+    "password": "bubbasaurus"
+  },
+  "devA": {
+    "ssid": "Arrakis",
+    "password": "frodo617SOLO"
+  }
+}

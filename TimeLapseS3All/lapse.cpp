@@ -159,22 +159,22 @@ SensorStatus processLapse(unsigned long dt)
         sprintf(camFileName, "/lapse%03d/pic%05d.jpg", lapseIndex, fileIndex);
         sprintf(thermFileName, "/lapse%03d/thermal_%03d.txt", lapseIndex, fileIndexTherm);
 
-        if (takeAndStorePic(camFileName)){
-            status.tookPicture = true;
-            status.setPictureFilename(camFileName);
-            Serial.print("saved cam image - ");
-            Serial.println(camFileName);
-        }
-
-        // Serial.println("taking thermal");
-        // Serial.println(thermFileName);
-        // if (takeAndStoreThermalPic(thermFileName)){
-        //     Serial.println("took the thermal pic");
-        //     status.tookThermalImage = true;
-        //     status.setThermalFilename(thermFileName);
-        //     Serial.print("saved thermal image - ");
-        //     Serial.println(thermFileName);
+        // if (takeAndStorePic(camFileName)){
+        //     status.tookPicture = true;
+        //     status.setPictureFilename(camFileName);
+        //     Serial.print("saved cam image - ");
+        //     Serial.println(camFileName);
         // }
+
+        Serial.println("taking thermal");
+        Serial.println(thermFileName);
+        if (takeAndStoreThermalPic(thermFileName)){
+            Serial.println("took the thermal pic");
+            status.tookThermalImage = true;
+            status.setThermalFilename(thermFileName);
+            Serial.print("saved thermal image - ");
+            Serial.println(thermFileName);
+        }
     }
 
     return status;

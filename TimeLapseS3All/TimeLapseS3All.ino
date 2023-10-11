@@ -249,9 +249,9 @@ void setup()
   Serial.println(" LED off, done");
   setupAndTestMMC();
   Serial.println(" MMC test, done");
-  initCamera();
-  Serial.println(" Camera setup, done");
-  // setupMLX90460();
+  //initCamera();
+  //Serial.println(" Camera setup, done");
+  setupMLX90460();
   Serial.println(" Thermal camera setup, done");
   setupWiFi();
   Serial.println(" Wifi setup, done");
@@ -351,7 +351,7 @@ void loop()
       Serial.println(timeMsg);
       lastMotionState = state;
 
-      // sendHttpMotionData(t, state);
+      //sendHttpMotionData(t, state);
     }
   }
 
@@ -419,18 +419,21 @@ void sendHttpData(String route, String httpRequestData) {
 
 
 void sendHttpMotionData(unsigned long time_read, bool motion) {
-  StaticJsonDocument<200> obj;  // Create a static JSON document with 200 bytes
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+    DynamicJsonDocument obj(500); 
 
-  // Add some key/value pairs
-  obj["sensor_id"] = SENSOR_ID;
-  obj["motion"] = motion ? "true" : "false";
-  obj["time_read"] = time_read;
+    // Add some key/value pairs
+    obj["sensor_id"] = SENSOR_ID;
+    obj["motion"] = motion ? "true" : "false";
+    obj["time_read"] = time_read;
 
-  // Generate the string to send
-  String httpRequestData;
-  serializeJson(obj, httpRequestData);
+    // Generate the string to send
+    String httpRequestData;
+    serializeJson(obj, httpRequestData);
 
-  sendHttpData("motion-reading", httpRequestData);
+    sendHttpData("motion-reading", httpRequestData);
+  }
 }
 
 
