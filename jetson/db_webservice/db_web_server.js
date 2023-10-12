@@ -259,7 +259,12 @@ app.post("/motion-reading", (req, res) => {
   const MOTION_EVENT_ID = 1;
 
   console.log(
-    "WRITE Req: motion - sensor ID:" + sensor_id + " time: " + time_read
+    "WRITE Req: motion - sensor ID:" +
+      sensor_id +
+      " time: " +
+      time_read +
+      " motion: " +
+      motion
   );
 
   db.serialize(() => {
@@ -271,12 +276,21 @@ app.post("/motion-reading", (req, res) => {
     db.run(motionQuery, [motion], function (err) {
       if (err) {
         console.log(" error in the motion query");
+        console.log(err.message);
+        console.log(
+          "motion: " +
+            motion +
+            " sensorid: " +
+            sensor_id +
+            " timeread: " +
+            time_read
+        );
         db.run("ROLLBACK");
         return res.status(500).json({ error: err.message });
       }
-      console.log(` added motion query, row: ${this.lastID}`);
+      console.log(` added motion query, row: ${this.lastMotionID}`);
 
-      let motionId = this.lastID;
+      let motionId = this.lastMotionID;
 
       // Step 2: Add to readings table
       console.log(" About to addReading");
@@ -351,8 +365,8 @@ app.post("/image-reading", (req, res) => {
           db.run("ROLLBACK");
           return res.status(500).json({ error: err.message });
         }
-        console.log(` Added image_data, row: ${this.lastID}`);
-        let imageId = this.lastID;
+        console.log(` Added image_data, row: ${this.lastImageID}`);
+        let imageId = this.lastImageID;
 
         addReading(sensor_id, time_read, IMAGE_EVENT_ID, imageId, db, (err) => {
           if (err) {
@@ -436,8 +450,8 @@ app.post("/thermal-reading", (req, res) => {
         db.run("ROLLBACK");
         return res.status(500).json({ error: err.message });
       }
-      console.log(` Added thermal_image_data, row: ${this.lastID}`);
-      let image_id = this.lastID;
+      console.log(` Added thermal_image_data, row: ${this.lastThermalID}`);
+      let image_id = this.lastThermalID;
 
       console.log(" About to addReading");
       console.log(" sensor_id: " + sensor_id + " thermal_id: " + image_id);
