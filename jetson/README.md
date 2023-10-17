@@ -45,6 +45,16 @@ sqlite3 dev.db < schemas/dev_data.sql
 
 ## Start the server
 
+node version 17 works, node version 20 does not work. Use nvm to set the node version:
+```nvm use v17```
+
+
+Ensure dnsmasq server is running. It's often not after reboot. 
+```sudo systemctl restart dnsmasq```
+```sudo systemctl status dnsmasq```
+the second command should show that the service started
+
+
 ## Run the server
 ```
 node db_webservice/db_webserver.js
