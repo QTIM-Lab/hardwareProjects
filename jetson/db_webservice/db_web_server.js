@@ -288,9 +288,9 @@ app.post("/motion-reading", (req, res) => {
         db.run("ROLLBACK");
         return res.status(500).json({ error: err.message });
       }
-      console.log(` added motion query, row: ${this.lastMotionID}`);
+      console.log(` added motion query, row: ${this.lastID}`);
 
-      let motionId = this.lastMotionID;
+      let motionId = this.lastID;
 
       // Step 2: Add to readings table
       console.log(" About to addReading");
@@ -365,8 +365,8 @@ app.post("/image-reading", (req, res) => {
           db.run("ROLLBACK");
           return res.status(500).json({ error: err.message });
         }
-        console.log(` Added image_data, row: ${this.lastImageID}`);
-        let imageId = this.lastImageID;
+        console.log(` Added image_data, row: ${this.lastID}`);
+        let imageId = this.lastID;
 
         addReading(sensor_id, time_read, IMAGE_EVENT_ID, imageId, db, (err) => {
           if (err) {
@@ -450,8 +450,8 @@ app.post("/thermal-reading", (req, res) => {
         db.run("ROLLBACK");
         return res.status(500).json({ error: err.message });
       }
-      console.log(` Added thermal_image_data, row: ${this.lastThermalID}`);
-      let image_id = this.lastThermalID;
+      console.log(` Added thermal_image_data, row: ${this.lastID}`);
+      let image_id = this.lastID;
 
       console.log(" About to addReading");
       console.log(" sensor_id: " + sensor_id + " thermal_id: " + image_id);
