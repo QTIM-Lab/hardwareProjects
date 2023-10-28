@@ -108,16 +108,16 @@ void setupMLX90460() {
   Wire.setClock(400000); //Increase I2C clock speed to 400kHz
 
   Serial.begin(115200);
-  Serial.println('started setup');
+  Serial.println("started thermal setup");
   // while (!Serial); //Wait for user to open terminal
   // Serial.println("MLX90640 IR Array Example");
 
   if (isConnected() == false)
   {
-    Serial.println("MLX90640 not detected at default I2C address. Please check wiring. Freezing.");
+    Serial.println(" MLX90640 not detected at default I2C address. Please check wiring. Freezing.");
     while (1);
   }
-  Serial.println("MLX90640 online");
+  Serial.println(" MLX90640 online");
 
   //Get device parameters - We only have to do this once
   int status;
@@ -315,6 +315,7 @@ void loop()
   SensorStatus lapseStatus = processLapse(dt);
 
   if (lapseStatus.tookThermalImage) {
+    Serial.println("took Thermal reading - about to send to server:");
     Serial.println(lapseStatus.debugPrint());
     sendHttpThermalData(t, lapseStatus.thermalFilename);
   } 
@@ -351,7 +352,7 @@ void loop()
       Serial.println(timeMsg);
       lastMotionState = state;
 
-      //sendHttpMotionData(t, state);
+      sendHttpMotionData(t, state);
     }
   }
 

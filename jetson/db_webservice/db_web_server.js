@@ -242,6 +242,13 @@ app.get("/api/people-detected", authenticateToken, (req, res) => {
 // Writing apis from sensors
 
 function addReading(sensor_id, time_read, event_id, data_id, db, callback) {
+  console.log("Entering addReading with parameters:", {
+    sensor_id,
+    time_read,
+    event_id,
+    data_id,
+  });
+
   let readingsData = [
     null,
     sensor_id,
@@ -250,8 +257,19 @@ function addReading(sensor_id, time_read, event_id, data_id, db, callback) {
     event_id,
     data_id,
   ];
+
   let readingsQuery = "INSERT INTO readings VALUES (?, ?, ?, ?, ?, ?)";
-  db.run(readingsQuery, readingsData, callback);
+  console.log("Executing query:", readingsQuery, "with data:", readingsData);
+
+  db.run(readingsQuery, readingsData, function (err) {
+    if (err) {
+      console.error("Error executing query:", err.message);
+      return callback(err);
+    }
+
+    console.log("Query executed successfully, lastID:", this.lastID);
+    callback(null);
+  });
 }
 
 app.post("/motion-reading", (req, res) => {
@@ -268,7 +286,7 @@ app.post("/motion-reading", (req, res) => {
   );
 
   db.serialize(() => {
-    db.run("PRAGMA foreign_keys = ON;");
+    // db.run("PRAGMA foreign_keys = ON;");  // sensor_ids need to be registered!
     db.run("BEGIN TRANSACTION");
 
     // Step 1: Add to motion_data table

@@ -68,8 +68,6 @@ bool takeAndStoreThermalPic(const char* filename) {
         MLX90640_CalculateTo(mlx90640Frame, &mlx90640a, emissivity, tr, mlx90640To);
     }
 
-    Serial.println("halfway through takeAndStoreThermalPic");
-
     for (uint8_t h=0; h < MLX_ROWS; h++) {// Row – 24 rows   
         for (uint8_t w=0; w < MLX_COLS; w++) {// Column – 32 columns
 
