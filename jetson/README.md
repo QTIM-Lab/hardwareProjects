@@ -41,6 +41,7 @@ After creating, set the schema and then populate the dev db with some fake data.
 ```
 sqlite3 dev.db < schemas/schema.sql
 sqlite3 dev.db < schemas/dev_data.sql
+sqlite3 dev.db < schemas/add_pods.sql
 ```
 
 ## Start the server

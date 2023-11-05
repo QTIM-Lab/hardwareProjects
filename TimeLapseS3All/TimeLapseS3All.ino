@@ -114,21 +114,37 @@ void setupMLX90460() {
 
   if (isConnected() == false)
   {
-    Serial.println(" MLX90640 not detected at default I2C address. Please check wiring. Freezing.");
-    while (1);
+    Serial.println(" MLX90640 not detected at default I2C address. Please check wiring. ");
+    return;
   }
-  Serial.println(" MLX90640 online");
+  else {
+    Serial.println(" MLX90640 connected");
+  }
 
   //Get device parameters - We only have to do this once
   int status;
   uint16_t eeMLX90640[832];
   status = MLX90640_DumpEE(MLX90640_address, eeMLX90640);
-  if (status != 0)
-    Serial.println("Failed to load system parameters");
+  if (status != 0){
+    Serial.println(" Failed to load system parameters");
+    return;
+  }
+  else {
+    Serial.println("  Param load success");
+  } 
+    
 
   status = MLX90640_ExtractParameters(eeMLX90640, &mlx90640);
   if (status != 0)
-    Serial.println("Parameter extraction failed");
+  {
+    Serial.println("  Parameter extraction failed");
+    return;
+  }
+  else 
+    Serial.println("  Param extraction success");
+
+
+  Serial.println("MLX90640 initialization completed - success");
 }
 
 // todo, handle wifi events 
