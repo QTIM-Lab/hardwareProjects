@@ -44,6 +44,106 @@ function authenticateToken(req, res, next) {
     */
 }
 
+app.post("/register-pod", (req, res) => {
+  const { pod_id, location, description } = req.body;
+  const query =
+    "INSERT OR IGNORE INTO pods (pod_id, location, description) VALUES (?, ?, ?)";
+  db.run(query, [pod_id, location, description], function (err) {
+    if (err) {
+      res.status(500).send(err.message);
+      return;
+    }
+    res
+      .status(200)
+      .send({ message: "Pod registered successfully", pod_db_id: this.lastID });
+  });
+});
+
+app.post("/register-sensor-pod", (req, res) => {
+  const { sensor_id, pod_id } = req.body;
+  const checkSensorQuery =
+    "INSERT OR IGNORE INTO sensors (sensor_id) VALUES (?)";
+  db.run(checkSensorQuery, [sensor_id], function (err) {
+    if (err) {
+      res.status(500).send(err.message);
+      return;
+    }
+
+    const checkPodQuery = "INSERT OR IGNORE INTO pods (pod_id) VALUES (?)";
+    db.run(checkPodQuery, [pod_id], function (err) {
+      if (err) {
+        res.status(500).send(err.message);
+        return;
+      }
+
+      const updateSensorPodQuery =
+        "INSERT INTO sensor_pod_history (sensor_id, pod_id, assignment_timestamp) VALUES (?, ?, datetime('now'))";
+      db.run(updateSensorPodQuery, [sensor_id, pod_id], function (err) {
+        if (err) {
+          res.status(500).send(err.message);
+          return;
+        }
+        res
+          .status(200)
+          .send({ message: "Sensor pod assignment updated successfully" });
+      });
+    });
+  });
+});
+
+app.get("/api/pods", authenticateToken, (req, res) => {
+  const query = `
+    SELECT 
+      pods.pod_id,
+      pods.location,
+      pods.description,
+      sensors.sensor_id,
+      sensors.type_id,
+      sensors.mac_address,
+      sensor_pod_history.assignment_timestamp
+    FROM
+      pods
+    LEFT JOIN
+      sensor_pod_history ON pods.pod_id = sensor_pod_history.pod_id
+    LEFT JOIN
+      sensors ON sensor_pod_history.sensor_id = sensors.sensor_id
+    WHERE
+      sensor_pod_history.assignment_timestamp = (
+        SELECT MAX(assignment_timestamp)
+        FROM sensor_pod_history
+        WHERE sensor_pod_history.sensor_id = sensors.sensor_id
+      )
+    ORDER BY
+      pods.pod_id, sensor_pod_history.assignment_timestamp DESC;
+  `;
+
+  db.all(query, (err, rows) => {
+    if (err) {
+      console.error(err);
+      res.status(500).json({ error: "Internal server error" });
+    } else {
+      const podsInfo = {};
+      rows.forEach((row) => {
+        const podId = row.pod_id;
+        if (!podsInfo[podId]) {
+          podsInfo[podId] = {
+            location: row.location,
+            description: row.description,
+            sensors: [],
+          };
+        }
+        podsInfo[podId].sensors.push({
+          sensor_id: row.sensor_id,
+          type_id: row.type_id,
+          mac_address: row.mac_address,
+          assignment_timestamp: row.assignment_timestamp,
+        });
+      });
+      res.json(podsInfo);
+    }
+  });
+});
+
 // Define a route for getting sensor data
 app.get("/api/sensors", authenticateToken, (req, res) => {
   console.log("READ Req: sensors");
