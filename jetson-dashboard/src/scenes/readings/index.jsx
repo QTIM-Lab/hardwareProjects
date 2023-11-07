@@ -25,7 +25,8 @@ const Readings = () => {
     if (params.row.data_type_id === 3) {
       try {
         const response = await fetch(
-          `http://192.168.4.1:3001/get-thermal/${params.row.id}`
+          //`http://192.168.4.1:3001/get-thermal/${params.row.id}`
+          `localhost:3001/get-thermal/${params.row.id}`
         );
 
         if (response.ok) {
@@ -89,7 +90,7 @@ const Readings = () => {
   useEffect(() => {
     async function fetchData() {
       try {
-        const response = await fetch("http://192.168.4.1:3001/api/readings"); // Replace with your API endpoint
+        const response = await fetch("http://localhost:3001/api/readings"); // "http://192.168.4.1:3001/api/readings"); // Replace with your API endpoint
         const data = await response.json();
         setReadingsData(data);
         setLoading(false);

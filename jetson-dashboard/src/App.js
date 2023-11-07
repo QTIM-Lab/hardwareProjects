@@ -4,6 +4,7 @@ import Topbar from "./scenes/global/Topbar";
 import Sidebar from "./scenes/global/Sidebar";
 import Dashboard from "./scenes/dashboard";
 import Team from "./scenes/team";
+import Pods from "./scenes/pods";
 import Readings from "./scenes/readings";
 import Invoices from "./scenes/invoices";
 import Contacts from "./scenes/contacts";
@@ -32,6 +33,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/team" element={<Team />} />
+              <Route path="/pods" element={<Pods />} />
               <Route path="/readings" element={<Readings />} />
               <Route path="/contacts" element={<Contacts />} />
               <Route path="/invoices" element={<Invoices />} />
