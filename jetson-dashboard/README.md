@@ -3,7 +3,7 @@
 
 ### npm start
 
-
+runs queries to 192.168.4.1:3001/
 
 
 
