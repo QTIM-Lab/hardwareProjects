@@ -104,17 +104,16 @@ app.get("/api/pods", authenticateToken, (req, res) => {
     FROM
       pods
     LEFT JOIN
-      sensor_pod_history ON pods.pod_id = sensor_pod_history.pod_id
-    LEFT JOIN
-      sensors ON sensor_pod_history.sensor_id = sensors.sensor_id
-    WHERE
+      sensor_pod_history ON pods.pod_id = sensor_pod_history.pod_id AND
       sensor_pod_history.assignment_timestamp = (
         SELECT MAX(assignment_timestamp)
-        FROM sensor_pod_history
-        WHERE sensor_pod_history.sensor_id = sensors.sensor_id
+        FROM sensor_pod_history as sph
+        WHERE sph.pod_id = pods.pod_id
       )
+    LEFT JOIN
+      sensors ON sensor_pod_history.sensor_id = sensors.sensor_id
     ORDER BY
-      pods.pod_id, sensor_pod_history.assignment_timestamp DESC;
+      pods.pod_id;
   `;
 
   db.all(query, (err, rows) => {
@@ -132,12 +131,14 @@ app.get("/api/pods", authenticateToken, (req, res) => {
             sensors: [],
           };
         }
-        podsInfo[podId].sensors.push({
-          sensor_id: row.sensor_id,
-          type_id: row.type_id,
-          mac_address: row.mac_address,
-          assignment_timestamp: row.assignment_timestamp,
-        });
+        if (row.sensor_id) {
+          podsInfo[podId].sensors.push({
+            sensor_id: row.sensor_id,
+            type_id: row.type_id,
+            mac_address: row.mac_address,
+            assignment_timestamp: row.assignment_timestamp,
+          });
+        }
       });
       res.json(podsInfo);
     }

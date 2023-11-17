@@ -51,6 +51,17 @@ const unsigned long MOTION_INTERVAL=5000;
 const unsigned long PIC_INTERVAL=15000; // 60000 = 1 per minute
 const char* motionFileLog = "/Motion.log";
 
+struct ConfigData {
+  String sensorId;
+  String env;
+  String ssid;
+  String pswd;
+  String podId;
+  String podLoc;
+  String podDesc;
+};
+
+
 void setupAndTestMMC() {
     Serial.begin(115200);
     SD_MMC.setPins(SD_MMC_CLK, SD_MMC_CMD, SD_MMC_D0);
@@ -203,12 +214,17 @@ void setupWiFi ()
     Serial.println(WiFi.localIP());
 }
 
-void loadConfig () 
+
+
+
+ConfigData loadConfig ( ) 
 { 
+    ConfigData ret;
+
     File configFile = SD_MMC.open("/config.txt");
     if (!configFile) {
       Serial.println("Failed to open config file");
-      return;
+      return ret;
     }
 
     const size_t capacity = 512; // how big is the config?  Dynamic seems safer.
@@ -221,15 +237,26 @@ void loadConfig ()
     DeserializationError error = deserializeJson(doc, buffer);
     if (error) {
       Serial.println("Failed to parse config file - is it bigger than 512 bytes?");
-      return;
+      return ret;
     }
+
+    configFile.close();
 
     SENSOR_ID = doc["sensorId"].as<String>();
     String env = doc["environment"];
     ssid = doc[env]["ssid"].as<String>();
     password = doc[env]["password"].as<String>();
 
-    configFile.close();
+    ret.sensorId = SENSOR_ID;
+    ret.env = env;
+    ret.ssid = ssid;
+    ret.pswd = password;
+    ret.podId = doc["podId"].as<String>();
+    ret.podLoc = doc["podLoc"].as<String>();
+    ret.podDesc = doc["podDesc"].as<String>();
+
+    return ret;
+
 }
 
 
@@ -267,12 +294,17 @@ void setup()
   Serial.println(" MMC test, done");
   //initCamera();
   //Serial.println(" Camera setup, done");
+
+  ConfigData cfg = loadConfig();
+
   setupMLX90460();
   Serial.println(" Thermal camera setup, done");
   setupWiFi();
   Serial.println(" Wifi setup, done");
   get_network_info();
   testServerCommunication();
+  registerPod(cfg);
+  registerSensorWithPod(cfg);
 
   setInterval(PIC_INTERVAL);
   setMaxCount(1000);  // stop taking pics after this many calls
@@ -285,6 +317,39 @@ void setup()
 
   Serial.println("setup, done");
   startLapse();
+}
+
+void registerPod (const ConfigData& cfg) {
+
+    HTTPClient http;
+    DynamicJsonDocument obj(500); 
+
+    // Add some key/value pairs
+    obj["pod_id"] = cfg.podId;
+    obj["location"] = cfg.podLoc;
+    obj["description"] = cfg.podDesc;
+
+    // Generate the string to send
+    String httpRequestData;
+    serializeJson(obj, httpRequestData);
+
+    sendHttpData("register-pod", httpRequestData);
+}
+
+void registerSensorWithPod (const ConfigData& cfg) {
+
+    HTTPClient http;
+    DynamicJsonDocument obj(500); 
+
+    // Add some key/value pairs
+    obj["pod_id"] = cfg.podId;
+    obj["sensor_id"] = cfg.sensorId;
+
+    // Generate the string to send
+    String httpRequestData;
+    serializeJson(obj, httpRequestData);
+
+    sendHttpData("register-sensor-pod", httpRequestData);
 }
 
 void testServerCommunication() {

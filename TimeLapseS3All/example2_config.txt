@@ -1,5 +1,8 @@
 {
   "sensorId" : "s3-20002",
+  "podId" : "home-pod-1",
+  "podLoc" : "home-office",
+  "podDesc" : "jetson set up in the office - sensors nearby",
   "environment": "jet",
   "prod": {
     "ssid": "networkName",
