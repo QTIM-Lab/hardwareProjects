@@ -45,6 +45,7 @@ function authenticateToken(req, res, next) {
 }
 
 app.post("/register-pod", (req, res) => {
+  console.log("WRITE Req: register-pod");
   const { pod_id, location, description } = req.body;
   const query =
     "INSERT OR IGNORE INTO pods (pod_id, location, description) VALUES (?, ?, ?)";
@@ -60,6 +61,7 @@ app.post("/register-pod", (req, res) => {
 });
 
 app.post("/register-sensor-pod", (req, res) => {
+  console.log("WRITE Req: register-sensor-pod");
   const { sensor_id, pod_id } = req.body;
   const checkSensorQuery =
     "INSERT OR IGNORE INTO sensors (sensor_id) VALUES (?)";
@@ -92,6 +94,7 @@ app.post("/register-sensor-pod", (req, res) => {
 });
 
 app.get("/api/pods", authenticateToken, (req, res) => {
+  console.log("READ Req: pods");
   const query = `
     SELECT 
       pods.pod_id,

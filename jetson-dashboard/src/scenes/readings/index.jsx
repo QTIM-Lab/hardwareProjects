@@ -90,7 +90,8 @@ const Readings = () => {
   useEffect(() => {
     async function fetchData() {
       try {
-        const response = await fetch("http://192.168.4.1:3001/api/readings");
+        //const response = await fetch("http://192.168.4.1:3001/api/readings");
+        const response = await fetch("http://localhost:3001/api/readings");
         const data = await response.json();
         setReadingsData(data);
         setLoading(false);
@@ -115,6 +116,7 @@ const Readings = () => {
       type: "number",
       headerAlign: "left",
       align: "left",
+      flex: 1,
     },
     {
       field: "time_read",
@@ -126,7 +128,6 @@ const Readings = () => {
     {
       field: "data_type_id",
       headerName: "Data Type ID",
-      flex: 1,
     },
     {
       field: "data_id",
@@ -210,7 +211,14 @@ const Readings = () => {
                   <TableCell style={{ fontWeight: "bold" }}>
                     Time Write
                   </TableCell>
-                  <TableCell>{readingData.time_write}</TableCell>
+                  <TableCell>
+                    {new Date(
+                      readingData.time_write * 1000
+                    ).toLocaleDateString()}{" "}
+                    {new Date(
+                      readingData.time_write * 1000
+                    ).toLocaleTimeString()}
+                  </TableCell>
                   <TableCell style={{ fontWeight: "bold" }}>
                     Time Read
                   </TableCell>
