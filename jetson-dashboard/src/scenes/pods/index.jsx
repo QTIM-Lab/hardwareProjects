@@ -13,8 +13,8 @@ const Pods = () => {
     const fetchPods = async () => {
       setLoading(true);
       try {
-        //const response = await axios.get("http://localhost:3001/api/rooms");
-        const response = await fetch("http://localhost:3001/api/pods");
+        const response = await fetch("http://192.168.4.1:3001/api/pods");
+        //const response = await fetch("http://localhost:3001/api/pods");
         const data = await response.json();
         console.log(data);
 
