@@ -356,8 +356,8 @@ function addReading(sensor_id, time_read, event_id, data_id, db, callback) {
   let readingsData = [
     null,
     sensor_id,
-    time_read,
     Date.now(),
+    time_read,
     event_id,
     data_id,
   ];
