@@ -87,6 +87,11 @@ const Readings = () => {
     }
   }
 
+  function formatTimestamp(timestamp) {
+    const date = new Date(timestamp);
+    return date.toISOString().replace("T", " ").substring(0, 19);
+  }
+
   useEffect(() => {
     async function fetchData() {
       try {
@@ -113,7 +118,7 @@ const Readings = () => {
     {
       field: "time_write",
       headerName: "Time Write",
-      type: "number",
+      valueGetter: (params) => formatTimestamp(params.row.time_write),
       headerAlign: "left",
       align: "left",
       flex: 1,
