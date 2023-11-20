@@ -107,16 +107,12 @@ app.get("/api/pods", authenticateToken, (req, res) => {
     FROM
       pods
     LEFT JOIN
-      sensor_pod_history ON pods.pod_id = sensor_pod_history.pod_id AND
-      sensor_pod_history.assignment_timestamp = (
-        SELECT MAX(assignment_timestamp)
-        FROM sensor_pod_history as sph
-        WHERE sph.pod_id = pods.pod_id
-      )
+      sensor_pod_history ON pods.pod_id = sensor_pod_history.pod_id
     LEFT JOIN
       sensors ON sensor_pod_history.sensor_id = sensors.sensor_id
     ORDER BY
-      pods.pod_id;
+      pods.pod_id, sensor_pod_history.assignment_timestamp;
+
   `;
 
   db.all(query, (err, rows) => {
