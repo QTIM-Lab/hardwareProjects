@@ -95,8 +95,8 @@ const Readings = () => {
   useEffect(() => {
     async function fetchData() {
       try {
-        //const response = await fetch("http://192.168.4.1:3001/api/readings");
-        const response = await fetch("http://localhost:3001/api/readings");
+        const response = await fetch("http://192.168.4.1:3001/api/readings");
+        //const response = await fetch("http://localhost:3001/api/readings");
         const data = await response.json();
         setReadingsData(data);
         setLoading(false);
