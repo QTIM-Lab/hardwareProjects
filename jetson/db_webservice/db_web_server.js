@@ -174,6 +174,16 @@ app.get("/api/data_types", authenticateToken, (req, res) => {
   });
 });
 
+app.get("/api/current_time", authenticateToken, (req, res) => {
+  console.log("READ Req: current_time");
+
+  // Get the current time on the server
+  const currentTime = new Date().toLocaleString();
+
+  // Return the current time as JSON
+  res.json({ currentTime });
+});
+
 // Define a route for getting sensor type data
 app.get("/api/sensor-types", authenticateToken, (req, res) => {
   // Query the database for sensor type data
