@@ -31,4 +31,4 @@ def process_files(input_folder, output_folder):
         print(f"Image saved to {output_path}")
 
 # call the process_files function with your input and output folders
-process_files('./data_9_8_23_mlx110', './pngs_9_8_23_mlx110')
+process_files('./lapse022', './lapse022_images')
