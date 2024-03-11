@@ -13,8 +13,8 @@ const Pods = () => {
     const fetchPods = async () => {
       setLoading(true);
       try {
-        const response = await fetch("http://192.168.4.1:3001/api/pods");
-        //const response = await fetch("http://localhost:3001/api/pods");
+        //const response = await fetch("http://192.168.4.1:3001/api/pods");
+        const response = await fetch("http://localhost:3001/api/pods");
         const data = await response.json();
         console.log(data);
 
@@ -44,12 +44,12 @@ const Pods = () => {
   ];
 
   const renderRowDetail = (room) => (
-    // Custom render function for room details
     <div>
       {room.sensors.map((sensor) => (
         <div key={sensor.sensor_id}>
-          Sensor ID: {sensor.sensor_id}
-          {/* Render other sensor details */}
+          <p>Sensor ID: {sensor.sensor_id}</p>
+          {/* Render the latest image for each sensor */}
+          <SensorImage sensorId={sensor.sensor_id} />
         </div>
       ))}
     </div>
