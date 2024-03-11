@@ -6,6 +6,7 @@ const cors = require("cors");
 const multer = require("multer");
 const fs = require("fs");
 const path = require("path"); // Import the path module
+const { exec } = require("child_process");
 
 const app = express();
 app.use(cors());
@@ -174,6 +175,16 @@ app.get("/api/data_types", authenticateToken, (req, res) => {
   });
 });
 
+app.get("/api/current_time", authenticateToken, (req, res) => {
+  console.log("READ Req: current_time");
+
+  // Get the current time on the server
+  const currentTime = new Date().toLocaleString();
+
+  // Return the current time as JSON
+  res.json({ currentTime });
+});
+
 // Define a route for getting sensor type data
 app.get("/api/sensor-types", authenticateToken, (req, res) => {
   // Query the database for sensor type data
@@ -215,6 +226,48 @@ app.get("/api/image-data", authenticateToken, (req, res) => {
       // Return the data as JSON
       res.json(rows);
     }
+  });
+});
+
+app.get("/get-thermal-heatmap/:readingId", (req, res) => {
+  const readingId = req.params.readingId;
+  // Assuming you retrieve the filename from the database as in the original API
+  const query = `
+    SELECT id.data_id, thermal_image_data.filename 
+    FROM readings AS id 
+    JOIN thermal_image_data ON id.data_id = thermal_image_data.id 
+    WHERE id.id = ? AND id.data_type_id = 3
+  `;
+
+  db.get(query, [readingId], (err, row) => {
+    if (err || !row) {
+      return res
+        .status(500)
+        .json({ error: err ? err.message : "Thermal data not found" });
+    }
+
+    const inputFilePath = path.resolve(row.filename);
+    const outputFilePath = path.resolve(row.filename.replace(".json", ".png"));
+
+    exec(
+      `python3 ./utilities/therm2png9.py ${inputFilePath} ${outputFilePath} 10`,
+      (error, stdout, stderr) => {
+        if (error) {
+          console.error(`exec error: ${error}`);
+          return res
+            .status(500)
+            .json({ error: "Error converting thermal data" });
+        }
+
+        // Send the PNG file
+        res.sendFile(outputFilePath, (err) => {
+          if (err) {
+            console.error(err);
+            res.status(500).json({ error: "Error sending PNG file" });
+          }
+        });
+      }
+    );
   });
 });
 
