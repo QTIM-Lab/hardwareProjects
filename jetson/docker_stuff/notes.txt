@@ -1,9 +1,5 @@
 
+sudo docker run --rm --runtime nvidia --network host -it -v /home/alan/Documents/github/hardwareProjects/jetson:/app torch-timm-scikit
 
-Additional installation commands
 
-  pip3 install timm
-  pip3 install Pillow==8.2.0
-  pip3 install timm
-  pip3 install scipy
-  pip3 install scikit-learn
+

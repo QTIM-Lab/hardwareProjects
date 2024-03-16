@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import torch
 import torch.nn as nn
 from torchvision import transforms
@@ -6,7 +7,9 @@ from PIL import Image
 import timm
 import io
 
+
 app = Flask(__name__)
+CORS(app)
 
 def load_model(model_path):
     model = timm.create_model('mobilenetv3_small_075', pretrained=False)
@@ -42,11 +45,14 @@ def predict():
             return jsonify({'error': 'No file part'})
         file = request.files['file']
         if file.filename == '':
+            print("Error: predict(): empty filename")
             return jsonify({'error': 'No selected file'})
         if file:
             img_bytes = file.read()
             prediction = predict_image(model, img_bytes)
-            
+
+            print("Prediction result:", prediction);
+
             # Define your condition for returning true or false
             response = prediction  
             
@@ -54,6 +60,10 @@ def predict():
 
     return jsonify({'error': 'Invalid request'})
 
+@app.route('/ping-server', methods=['GET'])
+def ping_server():
+    return jsonify({'result': 'hello from docker-flask server for thermal sensor classification'})
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=6000)
+    app.run(host='0.0.0.0', port=8080)
 

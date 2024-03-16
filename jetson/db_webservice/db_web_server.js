@@ -302,6 +302,56 @@ app.get("/get-thermal/:readingId", (req, res) => {
   });
 });
 
+app.get("/get-latest-thermal-reading/:sensorId", (req, res) => {
+  const sensorId = req.params.sensorId;
+  console.log("Request: Latest thermal data for sensor: " + sensorId);
+
+  const query = `
+    SELECT r.sensor_id, r.time_write, r.time_read, r.id, r.data_id, t.filename
+    FROM readings AS r
+    JOIN thermal_image_data AS t ON r.data_id = t.id
+    WHERE r.sensor_id = ? AND r.data_type_id = 3
+    ORDER BY r.time_write DESC
+    LIMIT 1;
+  `;
+
+  db.get(query, [sensorId], (err, row) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: err.message });
+    }
+
+    if (!row) {
+      return res.status(404).json({ error: "Latest thermal reading not found for sensor: " + sensorId });
+    }
+
+    const imagePath = path.resolve(row.filename);
+    // Read the content of the image file (which is a text file in this case)
+    fs.readFile(imagePath, 'utf8', (err, fileContent) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ error: "Error reading thermal image file" });
+      }
+
+  // Replace escaped newlines
+  const correctedFileContent = fileContent.replace(/\\n/g, '\n');
+
+      // Send both the file content and the reading data in the response
+      res.json({
+        sensorId: row.sensor_id,
+	readingId: row.id,
+        dataId: row.data_id, 
+	timeWrite: row.time_write,
+        timeRead: row.time_read,
+	filename: row.filename,
+        fileContent: correctedFileContent // Include the content of the file as a string in the response
+      });
+    });
+  });
+});
+
+
+
 app.get("/get-image/:readingId", (req, res) => {
   const readingId = req.params.readingId;
   console.log("READ Req: image data : " + readingId);

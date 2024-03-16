@@ -62,7 +62,4 @@ node db_webservice/db_webserver.js
 ```
 
 ## Start the pytorch docker container
-sudo docker run -it --rm --runtime nvidia --network host -v /home/alan/Documents/github/hardwareProjects/jetson:/jetson nvcr.io/nvidia/l4t-pytorch:r32.7.1-pth1.10-py3
-
-sudo docker run -it --rm  --runtime nvidia -v /home/alan/Documents/github/hardwareProjects/jetson:/app -p 6000:6000 test-torch
-
+sudo docker run --rm --runtime nvidia --network host -it -v /home/alan/Documents/github/hardwareProjects/jetson:/app torch-timm-scikit

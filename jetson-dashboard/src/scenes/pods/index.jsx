@@ -3,6 +3,8 @@ import { Box } from "@mui/material";
 import CircularProgress from "@mui/material/CircularProgress";
 import Alert from "@mui/material/Alert";
 import ExpandableTable from "../../components/ExpandableTable";
+import ThermalSensorImage from "./ThermalSensorImage";
+import { getLatestSensorAssignments } from "../../utilities/sensorUtil";
 
 const Pods = () => {
   const [rooms, setPods] = useState([]);
@@ -16,7 +18,10 @@ const Pods = () => {
         //const response = await fetch("http://192.168.4.1:3001/api/pods");
         const response = await fetch("http://localhost:3001/api/pods");
         const data = await response.json();
-        console.log(data);
+        
+        // console.log("  *****   data  *** ");
+        // 	      console.log(data);
+        // console.log("  *****  end data *** ");
 
         // Transform the data to include a unique id for each room
         const podsArray = Object.entries(data).map(([key, value]) => ({
@@ -24,8 +29,19 @@ const Pods = () => {
           ...value,
         }));
 
-        // Assuming the API returns an array of room objects
-        setPods(Object.values(podsArray));
+        const updatedPodsArray = podsArray.map(pod => ({
+          ...pod,
+          sensors: getLatestSensorAssignments(pod.sensors),
+        }));
+
+         console.log("  *****  updated array *** ");
+         console.log(updatedPodsArray);
+         
+         console.log("  *****  end updated array *** ");
+         
+	     
+	      // Assuming the API returns an array of room objects
+        setPods(Object.values(updatedPodsArray));
       } catch (err) {
         setError(err.message);
       } finally {
@@ -43,17 +59,18 @@ const Pods = () => {
     // ... other columns with width as needed
   ];
 
-  const renderRowDetail = (room) => (
-    <div>
-      {room.sensors.map((sensor) => (
-        <div key={sensor.sensor_id}>
-          <p>Sensor ID: {sensor.sensor_id}</p>
-          {/* Render the latest image for each sensor */}
-          <SensorImage sensorId={sensor.sensor_id} />
-        </div>
-      ))}
-    </div>
-  );
+  const renderRowDetail = (room) => {
+    console.log('Room:', room);
+
+    return (
+      <div>
+        {room.sensors.map((sensor) => {
+          console.log('Sensor:', sensor);
+          return <ThermalSensorImage key={sensor.sensor_id} sensorId={sensor.sensor_id} />;
+        })}
+      </div>
+    );
+  };
 
   return (
     <Box
@@ -67,11 +84,14 @@ const Pods = () => {
       {loading && <CircularProgress />}
       {error && <Alert severity="error">{error}</Alert>}
       {!loading && !error && (
-        <ExpandableTable
-          columns={columns}
-          data={rooms}
-          renderRowDetail={renderRowDetail}
-        />
+        <>
+	  {console.log('Rooms:', rooms)}
+	  <ExpandableTable
+            columns={columns}
+            data={rooms}
+            renderRowDetail={renderRowDetail}
+          />
+        </>
       )}
     </Box>
   );
