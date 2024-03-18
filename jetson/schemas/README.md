@@ -14,15 +14,19 @@ The Sensor Data Storage Server is designed to serve as a central repository for 
 ## Schema Intent
 
 ### **1. `sensors` and `sensor_types` Tables:**
+
 These tables collectively catalogue all sensors in the ecosystem. While `sensors` captures individual sensor details, `sensor_types` classifies these sensors. This dual structure makes adding a new category of sensors to the system straightforward.
 
 ### **2. `data_types` Table:**
+
 This table is central to the server's flexibility. When sensors send data, they do not send raw values alone; they send data types. `data_types` helps the system understand the nature of the data (e.g., image, motion) and where it should be stored. The inclusion of a description and unit for each data type aids in comprehensive reporting.
 
 ### **3. `readings` Table:**
+
 Acting as the heart of the system, this table records each data reading, linking it to its originating sensor, its type, and its timestamp. Despite its pivotal role, its design enables quick additions of new readings without the need to constantly alter the table for different data types.
 
 ### **4. Data-specific Tables (`image_data`, `thermal_image_data`, `motion_data`):**
+
 These tables are the raw storage houses for each type of sensor reading. The system's design allows for easy addition of new tables as more sensor data types are integrated.
 
 ## Usage and Expansion
@@ -32,6 +36,13 @@ To expand with new sensor data types:
 1. Create a new table for the specific data type.
 2. Add an entry to the `data_types` table, linking it to the new data table.
 3. Ensure the new sensor, if of a new category, has its type added to `sensor_types`.
+
+## to recreate an empty db
+
+```
+sqlite3 dev.db < schema.sql
+sqlite3 dev.db < add_prediction_table.sql
+```
 
 ## In Conclusion
 

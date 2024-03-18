@@ -4,6 +4,7 @@ const bodyParser = require("body-parser");
 const jwt = require("jsonwebtoken");
 const cors = require("cors");
 const multer = require("multer");
+const upload = multer({ storage: storage });
 const fs = require("fs");
 const path = require("path"); // Import the path module
 const { exec } = require("child_process");
@@ -13,6 +14,7 @@ app.use(cors());
 app.use(bodyParser.json());
 
 const UPLOAD_DIR = "uploads"; // dir to save the images
+const PREDICT_URL = "http://localhost:8080/predict";
 
 const port = 3001;
 const secret = "mysecretkey";
@@ -229,17 +231,125 @@ app.get("/api/image-data", authenticateToken, (req, res) => {
   });
 });
 
+// app.get("/get-thermal-heatmap/:readingId", (req, res) => {
+//   const readingId = req.params.readingId;
+//   // Assuming you retrieve the filename from the database as in the original API
+//   const query = `
+//     SELECT id.data_id, thermal_image_data.filename
+//     FROM readings AS id
+//     JOIN thermal_image_data ON id.data_id = thermal_image_data.id
+//     WHERE id.id = ? AND id.data_type_id = 3
+//   `;
+
+//   db.get(query, [readingId], (err, row) => {
+//     if (err || !row) {
+//       return res
+//         .status(500)
+//         .json({ error: err ? err.message : "Thermal data not found" });
+//     }
+
+//     const inputFilePath = path.resolve(row.filename);
+//     const outputFilePath = path.resolve(
+//       row.filename.replace(".json", `_${readingId}.png`)
+//     );
+
+//     // Check if the heatmap already exists
+//     if (fs.existsSync(outputFilePath)) {
+//       console.log("Heatmap already exists, sending existing file.");
+//       return res.sendFile(outputFilePath);
+//     }
+
+//     exec(
+//       `python3 ./utilities/therm2png9.py ${inputFilePath} ${outputFilePath} 10`,
+//       (error, stdout, stderr) => {
+//         if (error) {
+//           console.error(`exec error: ${error}`);
+//           return res
+//             .status(500)
+//             .json({ error: "Error converting thermal data" });
+//         }
+
+//         // Send the PNG file
+//         res.sendFile(outputFilePath, (err) => {
+//           if (err) {
+//             console.error(err);
+//             res.status(500).json({ error: "Error sending PNG file" });
+//           }
+//         });
+//       }
+//     );
+//   });
+// });
+
+// Reusable function to generate heatmap
+async function generateHeatmap(inputFilePath, outputFilePath) {
+  return new Promise((resolve, reject) => {
+    exec(
+      `python3 ./utilities/therm2png9.py ${inputFilePath} ${outputFilePath} 10`,
+      (error) => {
+        if (error) {
+          console.error(`exec error: ${error}`);
+          reject(new Error("Error converting thermal data"));
+        }
+        resolve(outputFilePath);
+      }
+    );
+  });
+}
+
+// Reusable function to call prediction service
+async function getPrediction(outputFilePath) {
+  const imageBuffer = fs.readFileSync(outputFilePath);
+  const formData = new FormData();
+  formData.append("file", imageBuffer, path.basename(outputFilePath));
+
+  const predictionResponse = await fetch(PREDICT_URL, {
+    method: "POST",
+    body: formData,
+    headers: formData.getHeaders(),
+  });
+
+  if (!predictionResponse.ok) {
+    throw new Error(
+      `Prediction service error: ${predictionResponse.statusText}`
+    );
+  }
+
+  return predictionResponse.json();
+}
+
+// Reusable function to store prediction result
+function storePrediction(readingId, predictionResult, readingTime) {
+  return new Promise((resolve, reject) => {
+    const insertPredictionQuery = `
+      INSERT INTO predictions (reading_id, prediction_result, reading_time)
+      VALUES (?, ?, ?)
+    `;
+    db.run(
+      insertPredictionQuery,
+      [readingId, JSON.stringify(predictionResult), readingTime],
+      (err) => {
+        if (err) {
+          console.error(`Database error: ${err.message}`);
+          reject(err);
+        }
+        resolve();
+      }
+    );
+  });
+}
+
 app.get("/get-thermal-heatmap/:readingId", (req, res) => {
   const readingId = req.params.readingId;
-  // Assuming you retrieve the filename from the database as in the original API
+
   const query = `
-    SELECT id.data_id, thermal_image_data.filename 
-    FROM readings AS id 
-    JOIN thermal_image_data ON id.data_id = thermal_image_data.id 
-    WHERE id.id = ? AND id.data_type_id = 3
+    SELECT readings.time_read, thermal_image_data.filename
+    FROM readings
+    JOIN thermal_image_data ON readings.data_id = thermal_image_data.id
+    WHERE readings.id = ? AND readings.data_type_id = 3
   `;
 
-  db.get(query, [readingId], (err, row) => {
+  db.get(query, [readingId], async (err, row) => {
     if (err || !row) {
       return res
         .status(500)
@@ -247,33 +357,29 @@ app.get("/get-thermal-heatmap/:readingId", (req, res) => {
     }
 
     const inputFilePath = path.resolve(row.filename);
-    const outputFilePath = path.resolve(row.filename.replace(".json", `_${readingId}.png`));
-
-    // Check if the heatmap already exists
-    if (fs.existsSync(outputFilePath)) {
-      console.log('Heatmap already exists, sending existing file.');
-      return res.sendFile(outputFilePath);
-    }
-
-    exec(
-      `python3 ./utilities/therm2png9.py ${inputFilePath} ${outputFilePath} 10`,
-      (error, stdout, stderr) => {
-        if (error) {
-          console.error(`exec error: ${error}`);
-          return res
-            .status(500)
-            .json({ error: "Error converting thermal data" });
-        }
-
-        // Send the PNG file
-        res.sendFile(outputFilePath, (err) => {
-          if (err) {
-            console.error(err);
-            res.status(500).json({ error: "Error sending PNG file" });
-          }
-        });
-      }
+    const outputFilePath = path.resolve(
+      row.filename.replace(".json", `_${readingId}.png`)
     );
+
+    try {
+      if (!fs.existsSync(outputFilePath)) {
+        await generateHeatmap(inputFilePath, outputFilePath);
+      }
+
+      const predictionData = await getPrediction(outputFilePath);
+
+      await storePrediction(readingId, predictionData.result, row.time_read);
+
+      res.sendFile(outputFilePath);
+    } catch (error) {
+      console.error(`Error: ${error.message}`);
+      if (fs.existsSync(outputFilePath)) {
+        // If there's an error but the heatmap exists, send the heatmap
+        res.sendFile(outputFilePath);
+      } else {
+        res.status(500).json({ error: error.message });
+      }
+    }
   });
 });
 
@@ -328,35 +434,37 @@ app.get("/get-latest-thermal-reading/:sensorId", (req, res) => {
     }
 
     if (!row) {
-      return res.status(404).json({ error: "Latest thermal reading not found for sensor: " + sensorId });
+      return res.status(404).json({
+        error: "Latest thermal reading not found for sensor: " + sensorId,
+      });
     }
 
     const imagePath = path.resolve(row.filename);
     // Read the content of the image file (which is a text file in this case)
-    fs.readFile(imagePath, 'utf8', (err, fileContent) => {
+    fs.readFile(imagePath, "utf8", (err, fileContent) => {
       if (err) {
         console.error(err);
-        return res.status(500).json({ error: "Error reading thermal image file" });
+        return res
+          .status(500)
+          .json({ error: "Error reading thermal image file" });
       }
 
-  // Replace escaped newlines
-  const correctedFileContent = fileContent.replace(/\\n/g, '\n');
+      // Replace escaped newlines
+      const correctedFileContent = fileContent.replace(/\\n/g, "\n");
 
       // Send both the file content and the reading data in the response
       res.json({
         sensorId: row.sensor_id,
-	readingId: row.id,
-        dataId: row.data_id, 
-	timeWrite: row.time_write,
+        readingId: row.id,
+        dataId: row.data_id,
+        timeWrite: row.time_write,
         timeRead: row.time_read,
-	filename: row.filename,
-        fileContent: correctedFileContent // Include the content of the file as a string in the response
+        filename: row.filename,
+        fileContent: correctedFileContent, // Include the content of the file as a string in the response
       });
     });
   });
 });
-
-
 
 app.get("/get-image/:readingId", (req, res) => {
   const readingId = req.params.readingId;
@@ -617,41 +725,58 @@ app.post("/image-reading", (req, res) => {
   });
 });
 
-// app.post('/thermal-reading', (req, res) => {
+// Endpoint to receive image, send it to prediction service, store the result, and return it
+app.post("/predict", upload.single("file"), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: "No file uploaded." });
+  }
 
-//   const THERMAL_IMAGE_EVENT_ID = 3;
+  // Send the image to the prediction service
+  const formData = new FormData();
+  formData.append("file", req.file.buffer, "image.png");
 
-//   const sensor_id = req.body.sensor_id;
-//   const time_read = req.body.time_read;
-//   const thermal_data = req.body.thermal_data;
+  try {
+    const predictionResponse = await fetch(PREDICT_URL, {
+      method: "POST",
+      body: formData,
+      headers: formData.getHeaders(),
+    });
 
-//   console.log("Got a thermal-reading request - sensor: " + sensor_id + " time: " + time_read);
-//   // console.log("thermal data:");
-//   // console.log(thermal_data);
+    if (!predictionResponse.ok) {
+      throw new Error(
+        `Error in prediction service: ${predictionResponse.statusText}`
+      );
+    }
 
-//   // Write thermalData to a .txt file
-//   const filepath = `./images/${sensor_id}_${time_read}.txt`;
-//   fs.writeFileSync(filepath, thermal_data);
+    const predictionData = await predictionResponse.json();
+    if (!predictionData.result) {
+      throw new Error("No prediction result found");
+    }
 
-//   db.serialize(() => {
-//     db.run('BEGIN TRANSACTION');
+    // Store the prediction result in the database
+    const insertQuery = `
+          INSERT INTO prediction_results (image_name, result)
+          VALUES (?, ?);
+      `;
 
-//     // Step 1: Add to image_data table
-//     let thermalImageQuery = 'INSERT INTO thermal_image_data(filename) VALUES (?)';
-//     db.run(thermalImageQuery, [filepath], function (err) {
-//       if (err) {
-//         console.log(" Error in the image query");
-//         return res.status(500).json({ error: err.message });
-//       }
-//       console.log(` Added thermal_image_data, row: ${this.lastID}`);
+    db.run(
+      insertQuery,
+      [req.file.originalname, predictionData.result],
+      (err) => {
+        if (err) {
+          console.error(err);
+          return res.status(500).json({ error: err.message });
+        }
 
-//       let image_id = this.lastID;
-
-//       // Step 2: Add to readings table - res returned from there
-//       addReading(sensor_id, time_read, THERMAL_IMAGE_EVENT_ID, image_id, db, res);
-//     });
-//   });
-// });
+        // Respond with the prediction result
+        res.json({ result: predictionData.result });
+      }
+    );
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 app.post("/thermal-reading", (req, res) => {
   const THERMAL_IMAGE_EVENT_ID = 3;
@@ -755,7 +880,6 @@ const storage = multer.diskStorage({
     cb(null, Date.now() + "-" + file.originalname); // Generate unique filename
   },
 });
-const upload = multer({ storage: storage });
 
 app.post("/upload", upload.single("image"), function (req, res, next) {
   // req.file is the 'image' file

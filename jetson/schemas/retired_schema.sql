@@ -1,6 +1,6 @@
 CREATE TABLE sensors (
-  db_id INTEGER PRIMARY KEY AUTOINCREMENT,
-  sensor_id TEXT UNIQUE,
+  id INTEGER PRIMARY KEY,
+  name TEXT,
   type_id INTEGER,
   mac_address TEXT UNIQUE,
   FOREIGN KEY (type_id) REFERENCES sensor_types(id)
@@ -44,27 +44,3 @@ CREATE TABLE motion_data (
   id INTEGER PRIMARY KEY,
   motion_detected INTEGER  -- row for each change 
 );
-
-
--- Create Pods table
-CREATE TABLE pods (
-    db_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    pod_id TEXT UNIQUE,
-    location TEXT,
-    description TEXT
-);
-
--- Insert a row for the unassigned pod
-INSERT INTO pods (db_id, pod_id, description)
-VALUES (0, 'Unassigned', 'Unassigned Pod: This pod serves as a placeholder for sensors that have not been assigned to a specific pod.');
-
--- Create Sensor_Pod_History table
-CREATE TABLE sensor_pod_history (
-    db_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    sensor_id TEXT,
-    pod_id TEXT,
-    assignment_timestamp DATETIME,
-    FOREIGN KEY (sensor_id) REFERENCES sensors(sensor_id),
-    FOREIGN KEY (pod_id) REFERENCES pods(pod_id)
-);
-
