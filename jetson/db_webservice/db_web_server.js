@@ -247,7 +247,13 @@ app.get("/get-thermal-heatmap/:readingId", (req, res) => {
     }
 
     const inputFilePath = path.resolve(row.filename);
-    const outputFilePath = path.resolve(row.filename.replace(".json", ".png"));
+    const outputFilePath = path.resolve(row.filename.replace(".json", `_${readingId}.png`));
+
+    // Check if the heatmap already exists
+    if (fs.existsSync(outputFilePath)) {
+      console.log('Heatmap already exists, sending existing file.');
+      return res.sendFile(outputFilePath);
+    }
 
     exec(
       `python3 ./utilities/therm2png9.py ${inputFilePath} ${outputFilePath} 10`,
