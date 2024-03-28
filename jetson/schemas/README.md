@@ -40,8 +40,8 @@ To expand with new sensor data types:
 ## to recreate an empty db
 
 ```
-sqlite3 dev.db < schema.sql
-sqlite3 dev.db < add_prediction_table.sql
+sqlite3 dev.db < ./schemas/schema.sql
+sqlite3 dev.db < ./schemas/add_prediction_table.sql
 ```
 
 ## In Conclusion
