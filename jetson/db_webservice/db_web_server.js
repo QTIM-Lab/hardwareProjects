@@ -4,7 +4,6 @@ const bodyParser = require("body-parser");
 const jwt = require("jsonwebtoken");
 const cors = require("cors");
 const multer = require("multer");
-const upload = multer({ storage: storage });
 const fs = require("fs");
 const path = require("path"); // Import the path module
 const { exec } = require("child_process");
@@ -12,6 +11,18 @@ const { exec } = require("child_process");
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
+
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "/images"); // Replace with the directory where you want to save the images
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + "-" + file.originalname); // Generate unique filename
+  },
+});
+const upload = multer({ storage: storage });
+
 
 const UPLOAD_DIR = "uploads"; // dir to save the images
 const PREDICT_URL = "http://localhost:8080/predict";
@@ -872,14 +883,7 @@ app.post("/thermal-reading", (req, res) => {
 //   });
 // });
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "/images"); // Replace with the directory where you want to save the images
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + "-" + file.originalname); // Generate unique filename
-  },
-});
+
 
 app.post("/upload", upload.single("image"), function (req, res, next) {
   // req.file is the 'image' file
