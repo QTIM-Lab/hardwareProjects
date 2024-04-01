@@ -789,62 +789,65 @@ app.post("/predict", upload.single("file"), async (req, res) => {
   }
 });
 
-app.post("/thermal-reading", (req, res) => {
+app.post("/thermal-reading", async (req, res) => {
   const THERMAL_IMAGE_EVENT_ID = 3;
 
   const { sensor_id, time_read, thermal_data } = req.body;
-
-  console.log(
-    "WRITE Req thermal - sensor: " + sensor_id + " time: " + time_read
-  );
+  console.log("WRITE Req thermal - sensor: " + sensor_id + " time: " + time_read);
 
   // Write thermalData to a .txt file
   const filepath = `./images/${sensor_id}_${time_read}.json`;
   fs.writeFileSync(filepath, JSON.stringify(thermal_data));
 
-  db.serialize(() => {
-    db.run("BEGIN TRANSACTION");
+  try {
+    db.serialize(() => {
+      db.run("BEGIN TRANSACTION");
 
-    let thermalImageQuery =
-      "INSERT INTO thermal_image_data(filename) VALUES (?)";
-    db.run(thermalImageQuery, [filepath], function (err) {
-      if (err) {
-        console.log(" Error in the image query");
-        db.run("ROLLBACK");
-        return res.status(500).json({ error: err.message });
-      }
-      console.log(` Added thermal_image_data, row: ${this.lastID}`);
-      let image_id = this.lastID;
-
-      console.log(" About to addReading");
-      console.log(" sensor_id: " + sensor_id + " thermal_id: " + image_id);
-      addReading(
-        sensor_id,
-        time_read,
-        THERMAL_IMAGE_EVENT_ID,
-        image_id,
-        db,
-        (err) => {
-          if (err) {
-            console.log(" Error with reading, rolling back");
-            console.log(" Error message: " + err.message);
-            db.run("ROLLBACK");
-            return res.status(500).json({ error: err.message });
-          }
-
-          db.run("COMMIT", (commitErr) => {
-            if (commitErr) {
-              db.run("ROLLBACK");
-              console.log("Transaction failed, rolling back", commitErr);
-              return res.status(500).json({ error: commitErr.message });
-            }
-            console.log("Transaction successful");
-            return res.status(200).json({ message: "Success" });
-          });
+      let thermalImageQuery = "INSERT INTO thermal_image_data(filename) VALUES (?)";
+      db.run(thermalImageQuery, [filepath], async function (err) {
+        if (err) {
+          console.log("Error in the image query");
+          db.run("ROLLBACK");
+          throw err; // Throw error to be caught by the outer try-catch
         }
-      );
+
+        let image_id = this.lastID;
+        console.log(`Added thermal_image_data, row: ${image_id}`);
+
+        // Insert reading data
+        await new Promise((resolve, reject) => {
+          addReading(sensor_id, time_read, THERMAL_IMAGE_EVENT_ID, image_id, db, (err) => {
+            if (err) {
+              console.log("Error with reading, rolling back");
+              db.run("ROLLBACK");
+              reject(err); // Reject the promise to be caught by the outer try-catch
+            } else {
+              resolve(); // Resolve the promise as the operation succeeded
+            }
+          });
+        });
+
+        // Assuming the commit is successful, generate the heatmap and get the prediction
+        const heatmapPath = await generateHeatmap(filepath, `./heatmaps/${sensor_id}_${time_read}.png`);
+        const predictionResult = await getPrediction(heatmapPath);
+
+        // Store prediction result
+        await storePrediction(image_id, predictionResult, time_read); // Pass image_id as the readingId
+
+        db.run("COMMIT", (commitErr) => {
+          if (commitErr) {
+            console.log("Transaction failed, rolling back", commitErr);
+            throw commitErr; // Throw error to be caught by the outer try-catch
+          }
+          console.log("Transaction successful");
+          res.status(200).json({ message: "Success" });
+        });
+      });
     });
-  });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // app.post("/api/get-thermal-image", (req, res) => {
