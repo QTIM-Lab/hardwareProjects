@@ -5,6 +5,7 @@ import Sidebar from "./scenes/global/Sidebar";
 import Dashboard from "./scenes/dashboard";
 import Team from "./scenes/team";
 import Pods from "./scenes/pods";
+import CalendarView from "./scenes/history";
 import Readings from "./scenes/readings";
 import Invoices from "./scenes/invoices";
 import Contacts from "./scenes/contacts";
@@ -35,6 +36,7 @@ function App() {
               <Route path="/team" element={<Team />} />
               <Route path="/pods" element={<Pods />} />
               <Route path="/readings" element={<Readings />} />
+              <Route path="/history" element={<CalendarView />} />
               <Route path="/contacts" element={<Contacts />} />
               <Route path="/invoices" element={<Invoices />} />
               <Route path="/form" element={<Form />} />
