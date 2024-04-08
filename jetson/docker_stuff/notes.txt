@@ -1,5 +1,16 @@
 
-sudo docker run --rm --runtime nvidia --network host -it -v /home/alan/Documents/github/hardwareProjects/jetson:/app torch-timm-scikit
+```sudo docker images```
+
+
+if Dockerfile update:
+sudo docker build -t torch-timm-scikit-flask .
+you'll probably want to be on a public netowrk (to, e.g., RUN pip3 install)
+
+
+sudo docker run --rm --runtime nvidia --network host -it -v /home/alan/Documents/github/hardwareProjects/jetson:/app torch-timm-scikit-flask
+
+then, 
+python3 classify_thermal_service.py
 
 
 

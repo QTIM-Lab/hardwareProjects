@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # python dependencies
 RUN pip3 install flask
+RUN pip3 install flask_cors
 RUN pip3 install Pillow==8.2.0
 RUN pip3 install timm
 RUN pip3 install scipy

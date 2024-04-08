@@ -61,5 +61,8 @@ the second command should show that the service started
 node db_webservice/db_webserver.js
 ```
 
+
+## latest images
+```sudo docker images```
 ## Start the pytorch docker container
-sudo docker run --rm --runtime nvidia --network host -it -v /home/alan/Documents/github/hardwareProjects/jetson:/app torch-timm-scikit
+sudo docker run --rm --runtime nvidia --network host -it -v /home/alan/Documents/github/hardwareProjects/jetson:/app torch-timm-scikit-flask

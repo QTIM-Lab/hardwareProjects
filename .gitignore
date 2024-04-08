@@ -7,3 +7,4 @@ esp32.svd
 *.db
 /jetson/uploads/
 /jetson/images/
+/jetson/heatmaps/
