@@ -10,14 +10,52 @@ import Header from "../../components/Header";
 const CalendarView = () => {
   const [currentEvents, setCurrentEvents] = useState([]);
   const [selectedSensor, setSelectedSensor] = useState('Sensor1');
-
-  // Mock sensors list
-  const sensors = ['Sensor1', 'Sensor2', 'Sensor3', 'Sensor4', 'Sensor5', 'Sensor6'];
+  const [sensors, setSensors] = useState([]); // Define state for sensors
 
   useEffect(() => {
-    fetchSensorData(selectedSensor);
+    async function init() {
+      const sensorIds = await fetchSensorIds();
+      setSensors(sensorIds);  // Update state with fetched sensor IDs
+      if (sensorIds.length > 0) {
+        setSelectedSensor(sensorIds[0]);  // Optionally set the first sensor as selected
+      }
+    }
+
+    init();
+  }, []);
+
+  useEffect(() => {
+    if (selectedSensor) {
+      fetchSensorData(selectedSensor);
+    }
   }, [selectedSensor]);
 
+  async function fetchSensorIds() {
+    try {
+      const response = await fetch('http://192.168.4.1:3001/api/sensors', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+  
+      if (!response.ok) {
+        throw new Error('Failed to fetch sensor IDs');
+      }
+  
+      const sensors = await response.json();
+      
+      // Assuming sensors is an array of objects with sensor_id as a key
+      const sensorIds = sensors.map(sensor => sensor.sensor_id);
+  
+      return sensorIds;
+    } catch (error) {
+      console.error('Error fetching sensor IDs:', error);
+      // Handle the error appropriately, possibly returning an empty array or a default value
+      return [];
+    }
+  }
+  
   async function fetchSensorData(sensorId) {
     // Set the time range for the query. Adjust according to your needs.
     const startDate = new Date();
@@ -26,10 +64,9 @@ const CalendarView = () => {
     endDate.setDate(startDate.getDate() + 1); // End of the day
   
     try {
-      const response = await fetch(`/api/predictions?sensorId=${sensorId}&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`, {
+      const response = await fetch(`http://192.168.4.1:3001/api/predictions?sensorId=${sensorId}&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`, {
         method: 'GET',
         headers: {
-          'Authorization': 'Bearer ' + yourAuthToken, // Assume you handle authentication
           'Content-Type': 'application/json'
         }
       });
