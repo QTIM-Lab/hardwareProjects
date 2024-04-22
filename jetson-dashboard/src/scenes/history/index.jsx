@@ -15,10 +15,79 @@ const CalendarView = () => {
   const sensors = ['Sensor1', 'Sensor2', 'Sensor3', 'Sensor4', 'Sensor5', 'Sensor6'];
 
   useEffect(() => {
-    fetchSensorData(selectedSensor);
+    fetchMockSensorData(selectedSensor);
   }, [selectedSensor]);
 
-  const fetchSensorData = (sensor) => {
+  async function fetchSensorData(sensorId) {
+    // This query joins the predictions, readings, and sensors tables to get the required data
+    const query = `
+      SELECT p.prediction_time, p.prediction_result
+      FROM predictions AS p
+      INNER JOIN readings AS r ON p.reading_id = r.id
+      INNER JOIN sensors AS s ON r.sensor_id = s.db_id
+      WHERE s.sensor_id = ?
+      AND p.prediction_time >= ? AND p.prediction_time <= ?
+      ORDER BY p.prediction_time ASC
+    `;
+  
+    // Set the time range for the query. Adjust according to your needs.
+    const startDate = new Date();
+    startDate.setHours(0, 0, 0, 0); // Start of the day
+    const endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + 1); // End of the day
+  
+    try {
+      const data = await new Promise((resolve, reject) => {
+        db.all(query, [sensorId, startDate.toISOString(), endDate.toISOString()], (err, rows) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(rows);
+          }
+        });
+      });
+  
+      // Map the prediction data to FullCalendar event objects
+      const events = data.map(entry => {
+        const start = new Date(entry.prediction_time);
+        const end = new Date(start.getTime() + 60000); // Assuming each entry represents 1 minute of data
+  
+        // The status parsing might need to be adjusted based on the actual structure of prediction_result
+        const status = parsePredictionResult(entry.prediction_result);
+        const color = status === 'occupied' ? 'red' : status === 'available' ? 'white' : 'transparent';
+  
+        return {
+          start: start.toISOString(),
+          end: end.toISOString(),
+          display: 'background', // Use background events to create thin lines
+          backgroundColor: color
+        };
+      });
+  
+      // Assuming `setCurrentEvents` sets the events in your application's state
+      setCurrentEvents(events);
+    } catch (error) {
+      console.error('Error fetching sensor data:', error);
+      // Handle the error appropriately
+    }
+  }
+  
+  // Adjust this function based on how prediction_result is structured and stored
+  function parsePredictionResult(predictionResult) {
+    // Example: If prediction_result is a JSON string with a `status` field
+    try {
+      const result = JSON.parse(predictionResult);
+      return result.status; // Assuming 'status' is a key in your prediction_result JSON
+    } catch (error) {
+      console.error('Error parsing prediction result:', error);
+      return 'no data'; // Default fallback
+    }
+  }
+  
+
+
+
+  const fetchMockSensorData = (sensor) => {
     const startDate = new Date();
     startDate.setHours(0, 0, 0, 0); // Start at midnight
   
