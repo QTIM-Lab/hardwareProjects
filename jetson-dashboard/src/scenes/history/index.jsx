@@ -15,21 +15,10 @@ const CalendarView = () => {
   const sensors = ['Sensor1', 'Sensor2', 'Sensor3', 'Sensor4', 'Sensor5', 'Sensor6'];
 
   useEffect(() => {
-    fetchMockSensorData(selectedSensor);
+    fetchSensorData(selectedSensor);
   }, [selectedSensor]);
 
   async function fetchSensorData(sensorId) {
-    // This query joins the predictions, readings, and sensors tables to get the required data
-    const query = `
-      SELECT p.prediction_time, p.prediction_result
-      FROM predictions AS p
-      INNER JOIN readings AS r ON p.reading_id = r.id
-      INNER JOIN sensors AS s ON r.sensor_id = s.db_id
-      WHERE s.sensor_id = ?
-      AND p.prediction_time >= ? AND p.prediction_time <= ?
-      ORDER BY p.prediction_time ASC
-    `;
-  
     // Set the time range for the query. Adjust according to your needs.
     const startDate = new Date();
     startDate.setHours(0, 0, 0, 0); // Start of the day
@@ -37,15 +26,19 @@ const CalendarView = () => {
     endDate.setDate(startDate.getDate() + 1); // End of the day
   
     try {
-      const data = await new Promise((resolve, reject) => {
-        db.all(query, [sensorId, startDate.toISOString(), endDate.toISOString()], (err, rows) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(rows);
-          }
-        });
+      const response = await fetch(`/api/predictions?sensorId=${sensorId}&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer ' + yourAuthToken, // Assume you handle authentication
+          'Content-Type': 'application/json'
+        }
       });
+  
+      if (!response.ok) {
+        throw new Error('Failed to fetch sensor data');
+      }
+  
+      const data = await response.json();
   
       // Map the prediction data to FullCalendar event objects
       const events = data.map(entry => {
@@ -71,6 +64,7 @@ const CalendarView = () => {
       // Handle the error appropriately
     }
   }
+  
   
   // Adjust this function based on how prediction_result is structured and stored
   function parsePredictionResult(predictionResult) {

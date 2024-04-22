@@ -548,6 +548,39 @@ app.get("/api/thermal-readings", authenticateToken, (req, res) => {
   });
 });
 
+// Define a route for getting prediction data linked to sensor readings
+app.get("/api/predictions", authenticateToken, (req, res) => {
+  const { sensorId, startDate, endDate } = req.query;
+
+  // Validate the incoming parameters
+  if (!sensorId) {
+    return res.status(400).json({ error: "Sensor ID is required" });
+  }
+
+  // Build the SQL query
+  const query = `
+    SELECT s.sensor_id, p.prediction_time, p.prediction_result, r.time_read
+    FROM predictions AS p
+    JOIN readings AS r ON p.reading_id = r.id
+    JOIN sensors AS s ON r.sensor_id = s.db_id
+    WHERE s.sensor_id = ? ${(startDate && endDate) ? 'AND p.prediction_time BETWEEN ? AND ?' : ''}
+    ORDER BY p.prediction_time ASC
+  `;
+
+  // Execute the query
+  db.all(query, 
+    (startDate && endDate) ? [sensorId, startDate, endDate] : [sensorId], 
+    (err, rows) => {
+      if (err) {
+        console.error('Error fetching prediction data:', err);
+        res.status(500).json({ error: "Internal server error" });
+      } else {
+        res.json(rows);
+      }
+  });
+});
+
+
 app.get("/api/people-detected", authenticateToken, (req, res) => {
   console.log("READ Req: people detected");
   const query = `
