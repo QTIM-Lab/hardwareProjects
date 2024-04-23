@@ -73,15 +73,20 @@ const CalendarView = () => {
   
       const data = await response.json();
       const events = data.map(entry => {
+        const utcDate = new Date(entry.prediction_time);
+        // Convert UTC date to local time
+        const localDate = new Date(utcDate.getTime() - (utcDate.getTimezoneOffset() * 60000));
+      
         const status = parsePredictionResult(entry.prediction_result);
         const color = status === 'occupied' ? 'red' : status === 'available' ? 'white' : 'transparent';
-        
+      
         return ({
-        start: new Date(entry.prediction_time).toISOString(),
-        end: new Date(new Date(entry.prediction_time).getTime() + 60000).toISOString(),
-        display: 'background',
-        backgroundColor: entry.status === 'occupied' ? 'red' : 'white'
-      })});
+          start: localDate.toISOString(),
+          end: new Date(localDate.getTime() + 60000).toISOString(),  // Add 1 minute to the local date
+          display: 'background',
+          backgroundColor: color
+        });
+      });
   
       setCurrentEvents(events);
     } catch (error) {
