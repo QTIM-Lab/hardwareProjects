@@ -10,6 +10,7 @@ import Header from "../../components/Header";
 const CalendarView = () => {
   const [currentEvents, setCurrentEvents] = useState([]);
   const [selectedSensor, setSelectedSensor] = useState('Sensor1');
+  const [currentDate, setCurrentDate] = useState(new Date());  // Default to today's date
   const [sensors, setSensors] = useState([]); // Define state for sensors
 
   useEffect(() => {
@@ -25,10 +26,10 @@ const CalendarView = () => {
   }, []);
 
   useEffect(() => {
-    if (selectedSensor) {
-      fetchSensorData(selectedSensor);
+    if (selectedSensor && currentDate) {
+      fetchSensorData(selectedSensor, currentDate);
     }
-  }, [selectedSensor, fetchSensorData]);
+  }, [selectedSensor, currentDate, fetchSensorData]);
 
   async function fetchSensorIds() {
     try {
@@ -56,8 +57,8 @@ const CalendarView = () => {
     }
   }
   
-  const fetchSensorData = useCallback(async (sensorId) => {
-    const startDate = new Date();
+  const fetchSensorData = useCallback(async (sensorId, date) => {
+    const startDate = new Date(date);
     startDate.setHours(0, 0, 0, 0);
     const endDate = new Date(startDate);
     endDate.setDate(startDate.getDate() + 1);
@@ -220,7 +221,10 @@ const renderEventContent = (eventInfo) => {
               center: "title",
               right: "dayGridMonth,timeGridWeek,timeGridDay",
             }}
-            initialView="timeGridWeek"
+            initialView="timeGridDay"
+            datesSet={(dateInfo) => {
+              setCurrentDate(dateInfo.start);
+            }}
             slotMinTime="00:00:00" // Start at midnight to allow viewing all 24 hours
             slotMaxTime="24:00:00" // End at the close of the 24th hour
             slotDuration="00:01:00"
