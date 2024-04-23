@@ -552,24 +552,33 @@ app.get("/api/thermal-readings", authenticateToken, (req, res) => {
 app.get("/api/predictions", authenticateToken, (req, res) => {
   const { sensorId, startDate, endDate } = req.query;
 
+  console.log("READ Req: preditions");
+  console.log(" ", sensorId, " ", startDate, " ", endDate);
+
   // Validate the incoming parameters
   if (!sensorId) {
     return res.status(400).json({ error: "Sensor ID is required" });
   }
 
+  const convertSqlDateString = (dateStr) => {
+    return dateStr.replace('T', ' ').replace('Z', '');
+  }
+
+  const sqlStartDate = convertSqlDateString(startDate);
+  const sqlEndDate = convertSqlDateString(endDate);
+
   // Build the SQL query
   const query = `
-    SELECT s.sensor_id, p.prediction_time, p.prediction_result, r.time_read
+    SELECT r.sensor_id, p.prediction_time, p.prediction_result, r.time_read
     FROM predictions AS p
     JOIN readings AS r ON p.reading_id = r.id
-    JOIN sensors AS s ON r.sensor_id = s.db_id
-    WHERE s.sensor_id = ? ${(startDate && endDate) ? 'AND p.prediction_time BETWEEN ? AND ?' : ''}
+    WHERE r.sensor_id = ? ${(startDate && endDate) ? 'AND p.prediction_time BETWEEN ? AND ?' : ''}
     ORDER BY p.prediction_time ASC
   `;
 
   // Execute the query
   db.all(query, 
-    (startDate && endDate) ? [sensorId, startDate, endDate] : [sensorId], 
+    (startDate && endDate) ? [sensorId, sqlStartDate, sqlEndDate] : [sensorId], 
     (err, rows) => {
       if (err) {
         console.error('Error fetching prediction data:', err);

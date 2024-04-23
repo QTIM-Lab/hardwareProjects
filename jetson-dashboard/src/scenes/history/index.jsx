@@ -28,7 +28,7 @@ const CalendarView = () => {
     if (selectedSensor) {
       fetchSensorData(selectedSensor);
     }
-  }, [selectedSensor]);
+  }, [selectedSensor, fetchSensorData]);
 
   async function fetchSensorIds() {
     try {
@@ -108,16 +108,19 @@ const CalendarView = () => {
     // Example: If prediction_result is a JSON string with a `status` field
     try {
       const result = JSON.parse(predictionResult);
-      return result.status; // Assuming 'status' is a key in your prediction_result JSON
+      let ret = "no data";
+      if (result.result === 0)
+	 ret = "available";
+      if (result.result === 1)
+	 ret = "occupied";
+      return ret;
+
     } catch (error) {
       console.error('Error parsing prediction result:', error);
       return 'no data'; // Default fallback
     }
   }
   
-
-
-
   const fetchMockSensorData = (sensor) => {
     const startDate = new Date();
     startDate.setHours(0, 0, 0, 0); // Start at midnight
@@ -148,7 +151,7 @@ const CalendarView = () => {
           status = 'occupied';
         }
 
-        if (hour == 12 && min>= 30 && min <= 33) {
+        if (hour === 12 && min>= 30 && min <= 33) {
           status = 'available';
         }
       }
