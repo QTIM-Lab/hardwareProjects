@@ -56,12 +56,11 @@ const CalendarView = () => {
     }
   }
   
-  async function fetchSensorData(sensorId) {
-    // Set the time range for the query. Adjust according to your needs.
+  const fetchSensorData = useCallback(async (sensorId) => {
     const startDate = new Date();
-    startDate.setHours(0, 0, 0, 0); // Start of the day
+    startDate.setHours(0, 0, 0, 0);
     const endDate = new Date(startDate);
-    endDate.setDate(startDate.getDate() + 1); // End of the day
+    endDate.setDate(startDate.getDate() + 1);
   
     try {
       const response = await fetch(`http://192.168.4.1:3001/api/predictions?sensorId=${sensorId}&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`, {
@@ -76,43 +75,33 @@ const CalendarView = () => {
       }
   
       const data = await response.json();
-  
-      // Map the prediction data to FullCalendar event objects
       const events = data.map(entry => {
-        const start = new Date(entry.prediction_time);
-        const end = new Date(start.getTime() + 60000); // Assuming each entry represents 1 minute of data
-  
-        // The status parsing might need to be adjusted based on the actual structure of prediction_result
         const status = parsePredictionResult(entry.prediction_result);
         const color = status === 'occupied' ? 'red' : status === 'available' ? 'white' : 'transparent';
+        
+        return ({
+        start: new Date(entry.prediction_time).toISOString(),
+        end: new Date(new Date(entry.prediction_time).getTime() + 60000).toISOString(),
+        display: 'background',
+        backgroundColor: entry.status === 'occupied' ? 'red' : 'white'
+      })});
   
-        return {
-          start: start.toISOString(),
-          end: end.toISOString(),
-          display: 'background', // Use background events to create thin lines
-          backgroundColor: color
-        };
-      });
-  
-      // Assuming `setCurrentEvents` sets the events in your application's state
       setCurrentEvents(events);
     } catch (error) {
       console.error('Error fetching sensor data:', error);
-      // Handle the error appropriately
     }
-  }
-  
+  }, []); // Empty dependency array ensures it's created once
   
   // Adjust this function based on how prediction_result is structured and stored
   function parsePredictionResult(predictionResult) {
     // Example: If prediction_result is a JSON string with a `status` field
     try {
       const result = JSON.parse(predictionResult);
-      let ret = "no data";
+      let ret = "no result data";
       if (result.result === 0)
-	 ret = "available";
+        ret = "available";
       if (result.result === 1)
-	 ret = "occupied";
+        ret = "occupied";
       return ret;
 
     } catch (error) {
