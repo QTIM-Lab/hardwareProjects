@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import FullCalendar, { formatDate } from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
@@ -25,11 +25,7 @@ const CalendarView = () => {
     init();
   }, []);
 
-  useEffect(() => {
-    if (selectedSensor && currentDate) {
-      fetchSensorData(selectedSensor, currentDate);
-    }
-  }, [selectedSensor, currentDate, fetchSensorData]);
+
 
   async function fetchSensorIds() {
     try {
@@ -162,7 +158,12 @@ const CalendarView = () => {
   
     setCurrentEvents(events);
   };
-  
+
+  useEffect(() => {
+    if (selectedSensor && currentDate) {
+      fetchSensorData(selectedSensor, currentDate);
+    }
+  }, [selectedSensor, currentDate, fetchSensorData]);
   
 // Custom rendering function for events
 const renderEventContent = (eventInfo) => {
